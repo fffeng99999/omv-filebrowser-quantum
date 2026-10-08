@@ -1,0 +1,161 @@
+# Translation of openmediavault-filebrowser-quantum in Chinese (China).
+# Copyright (C) 2026 ${GITHUB_USER}
+# This file is distributed under the same license as the openmediavault-filebrowser-quantum package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-08 12:00+0800\n"
+"PO-Revision-Date: 2026-10-08 12:00+0800\n"
+"Last-Translator: ${GITHUB_USER}\n"
+"Language-Team: Chinese (China)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "FileBrowser Quantum"
+msgstr "FileBrowser Quantum"
+
+msgid "Updated FileBrowser Quantum settings."
+msgstr "已更新 FileBrowser Quantum 设置。"
+
+msgid "Running"
+msgstr "运行中"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Not installed"
+msgstr "未安装"
+
+msgid "FileBrowser Quantum is a self-hosted web file manager (a modern fork of the archived FileBrowser). The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected or edited; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data and source shared folders, save, then click Apply and use the buttons below to deploy and manage the container."
+msgstr "FileBrowser Quantum 是自托管的网页文件管理器（已归档的 FileBrowser 的现代分支）。容器由 Compose 插件创建（服务 → Compose → 文件），也可在那里查看或编辑；请先在 服务 → Compose → 设置 中选好 Compose 共享文件夹。选择数据与源共享文件夹，保存后点击“应用”，再用下方按钮部署和管理容器。"
+
+msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
+msgstr "本插件管理 FileBrowser Quantum v2 系列（数据文件夹内的 config.yaml 与 SQLite 数据库）；v1.5.x 系列使用不同的配置格式，不受支持。首次启动会生成随机管理员密码并写入容器日志——打开网页界面后请立即修改。"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Service status"
+msgstr "服务状态"
+
+msgid "Running version"
+msgstr "运行版本"
+
+msgid "Latest version"
+msgstr "最新版本"
+
+msgid "Update available"
+msgstr "有可用更新"
+
+msgid "Service"
+msgstr "服务"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data and source folders are kept)."
+msgstr "由 OMV 自动管理容器。应用时创建（或重建）容器；关闭服务后应用会移除容器（数据与源文件夹保留）。"
+
+msgid "Storage"
+msgstr "存储"
+
+msgid "Stack file (Compose plugin)"
+msgstr "栈文件（Compose 插件）"
+
+msgid "Stack file location. The stack files are rendered by the Compose plugin into its shared folder and are managed there, so this path cannot be changed here. Set the folder in Services -> Compose -> Settings."
+msgstr "栈文件位置。栈文件由 Compose 插件渲染到其共享文件夹并在此管理，因此该路径不能在此更改。请在 服务 → Compose → 设置 中设置文件夹。"
+
+msgid "Data shared folder"
+msgstr "数据共享文件夹"
+
+msgid "Shared folder for the FileBrowser Quantum configuration, its SQLite database and the cache (mounted at /home/filebrowser/data). Put it on the data array. Changing it later starts from an empty configuration in the new folder - the previous data is not deleted."
+msgstr "FileBrowser Quantum 配置、SQLite 数据库与缓存所在的共享文件夹（挂载到容器内 /home/filebrowser/data）。请放在数据阵列上。之后更改会在新文件夹中以空配置重新开始——原数据不会被删除。"
+
+msgid "Source shared folder"
+msgstr "源共享文件夹"
+
+msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
+msgstr "在 FileBrowser Quantum 网页界面中浏览的文件所在共享文件夹（以读写方式挂载到容器内 /srv）。如需增加更多源，只能编辑数据共享文件夹中的 config.yaml。"
+
+msgid "Container"
+msgstr "容器"
+
+msgid "Image tag"
+msgstr "镜像标签"
+
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
+msgstr "ghcr.io/gtsteffaniak/filebrowser 镜像的 Docker 标签，不带前导 'v'（例如 2.0.10-beta）。请使用 v2 标签；固定具体版本（不要用 'beta' 或 'stable'）可保证部署可复现。在此修改后应用，或使用“升级”按钮。"
+
+msgid "Image variant"
+msgstr "镜像变体"
+
+msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
+msgstr "“完整版”包含 FFmpeg 与文档预览（镜像较大）；“精简版”仅含核心服务（体积小得多，无媒体/文档预览）。"
+
+msgid "Full (media and document previews)"
+msgstr "完整版（媒体与文档预览）"
+
+msgid "Slim (core service only)"
+msgstr "精简版（仅核心服务）"
+
+msgid "Network"
+msgstr "网络"
+
+msgid "Web port"
+msgstr "Web 端口"
+
+msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
+msgstr "FileBrowser Quantum 网页界面在宿主机上的端口（容器内部固定监听 80 端口）。"
+
+msgid "Start"
+msgstr "启动"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Restart"
+msgstr "重启"
+
+msgid "Upgrade"
+msgstr "升级"
+
+msgid "View logs"
+msgstr "查看日志"
+
+msgid "View compose file"
+msgstr "查看 compose 文件"
+
+msgid "Open FileBrowser Quantum"
+msgstr "打开 FileBrowser Quantum"
+
+msgid "FileBrowser Quantum deploy/start output"
+msgstr "FileBrowser Quantum 部署/启动输出"
+
+msgid "Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept."
+msgstr "确定要停止 FileBrowser Quantum 容器吗？容器会被移除；数据与源文件夹及设置均保留。"
+
+msgid "FileBrowser Quantum stop output"
+msgstr "FileBrowser Quantum 停止输出"
+
+msgid "Do you really want to restart the FileBrowser Quantum container?"
+msgstr "确定要重启 FileBrowser Quantum 容器吗？"
+
+msgid "FileBrowser Quantum restart output"
+msgstr "FileBrowser Quantum 重启输出"
+
+msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
+msgstr "确定要升级 FileBrowser Quantum 容器吗？将针对所配置的标签拉取更新的镜像并重建容器。大版本升级前请阅读上游发布说明。"
+
+msgid "FileBrowser Quantum upgrade output"
+msgstr "FileBrowser Quantum 升级输出"
+
+msgid "FileBrowser Quantum logs"
+msgstr "FileBrowser Quantum 日志"
+
+msgid "Rendered docker-compose.yml"
+msgstr "渲染后的 docker-compose.yml"

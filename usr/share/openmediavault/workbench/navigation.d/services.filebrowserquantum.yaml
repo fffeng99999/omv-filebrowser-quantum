@@ -1,0 +1,10 @@
+version: "1.0"
+type: navigation-item
+data:
+  path: "services.filebrowserquantum"
+  text: _("FileBrowser Quantum")
+  icon: "mdi:folder-network-outline"
+  url: "/services/filebrowserquantum"
+  permissions:
+    role:
+    - admin

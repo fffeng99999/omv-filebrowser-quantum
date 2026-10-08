@@ -1,0 +1,28 @@
+openmediavault-filebrowser-quantum (8.0.1) stable; urgency=medium
+
+  * Initial release: FileBrowser Quantum management plugin for
+    OpenMediaVault 8.x.
+    - Settings: image tag, image variant (full/slim), web port, the
+      data shared folder (config, SQLite database and cache) and the
+      source shared folder that is exposed for browsing.
+    - The Docker container is registered in the openmediavault-compose
+      plugin on save (Compose.setFile), so it follows the Compose
+      plugin conventions (<compose shared folder>/filebrowserquantum/)
+      and shows up in the Compose web UI (Services -> Compose ->
+      Files / Services) where it can also be inspected, edited,
+      started and stopped. The plugin does not render the stack files
+      itself.
+    - The data and source folders are referenced through the Compose
+      placeholder '${{ sf:"<name>" }}', so a changed shared folder path
+      is resolved by the Compose plugin on deploy.
+    - A minimal config.yaml (source mount point /srv) is created in the
+      data shared folder on first Apply and never overwritten
+      afterwards, so the web interface works out of the box.
+    - Live status: container state, running image version, latest
+      upstream release for the configured channel and update
+      detection, log viewer and rendered compose file preview.
+    - Start/Stop/Restart/Upgrade run as background tasks (through the
+      Compose plugin helper omv-compose-run) with live output.
+    - Simplified and Traditional Chinese translations included.
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Thu, 08 Oct 2026 12:00:00 +0800

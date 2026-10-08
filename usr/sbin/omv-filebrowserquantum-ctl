@@ -1,0 +1,222 @@
+#!/usr/bin/env dash
+#
+# This file is part of OpenMediaVault.
+#
+# @license   https://www.gnu.org/licenses/gpl.html GPL Version 3
+# @author    ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>
+#
+# OpenMediaVault is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# Control the FileBrowser Quantum Docker container registered in the
+# openmediavault-compose plugin.
+#
+# Usage: omv-filebrowserquantum-ctl <cmd> [arg]
+#
+# The stack is owned by the Compose plugin and lives in the Compose
+# plugin shared folder:
+#   <compose shared folder>/filebrowserquantum/filebrowserquantum.yml
+#   <compose shared folder>/filebrowserquantum/filebrowserquantum.env
+# Every stack command is executed through /usr/sbin/omv-compose-run
+# (the helper of the Compose plugin), so the same --file/--env-file
+# arguments are used as from the Compose web UI.
+#
+# Commands:
+#   up            start the stack (docker compose up -d)
+#   down          stop and remove the container (data is kept)
+#   restart       restart the stack
+#   upgrade       pull a newer image and recreate the stack
+#   status        print "running" | "stopped" | "notinstalled"
+#   version       print the image tag of the running container
+#   latest <ch>   print the latest upstream release tag of the channel
+#                 (ch = stable | beta)
+#   logs          print the last 300 log lines
+#   showcompose   print the rendered <stack>.yml
+#   path          print the resolved stack directory (or nothing)
+#   unregister    remove the stack from the Compose plugin (used on purge)
+
+set -u
+
+. /usr/share/openmediavault/scripts/helper-functions
+
+# Name of the stack in the Compose plugin; also the stack directory, the
+# base name of the generated files and the container name.
+STACK="filebrowserquantum"
+CONTAINER="filebrowserquantum"
+
+CMD="${1:-}"
+ARG="${2:-}"
+
+case "$CMD" in
+	up|down|restart|upgrade|status|version|latest|logs|showcompose|path|unregister)
+	;;
+	*)
+		echo "Usage: omv-filebrowserquantum-ctl <up|down|restart|upgrade|status|version|latest|logs|showcompose|path|unregister> [arg]" >&2
+		exit 64
+	;;
+esac
+
+# ---------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------
+
+# Read a scalar property of a configuration object from the config
+# database. The value may be quoted (string) or not (boolean/number), so
+# the quotes are stripped and the result trimmed.
+conf_value() {
+	omv-confdbadm read "$1" 2>/dev/null | tr -d '\n' \
+		| sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\([^,}]*\).*/\1/p" \
+		| tr -d '"' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+# Resolve a shared folder reference to its absolute path.
+ref_path() {
+	omv_get_sharedfolder_path "$1" 2>/dev/null || true
+}
+
+# Resolve the Compose plugin shared folder (the directory that holds all
+# stacks of the openmediavault-compose plugin).
+compose_sf_path() {
+	_ref="$(conf_value conf.service.compose sharedfolderref)"
+	[ -n "$_ref" ] && ref_path "$_ref"
+}
+
+# Directory of the stack inside the Compose shared folder.
+stack_dir() {
+	_sf="$(compose_sf_path)"
+	[ -n "$_sf" ] && echo "$_sf/$STACK"
+}
+
+# Run docker compose for the stack through the Compose plugin helper
+# (same --file/--env-file arguments as the Compose web UI).
+dc() {
+	if [ ! -x /usr/sbin/omv-compose-run ]; then
+		echo "ERROR: the openmediavault-compose plugin is not installed." >&2
+		return 1
+	fi
+	/usr/sbin/omv-compose-run "$STACK" "$@" 2>&1
+}
+
+# Create a minimal config.yaml in the data shared folder when it does not
+# exist yet; an existing file (possibly edited by the user) is never
+# overwritten. The source folder is mounted at the fixed container path
+# /srv, so the config does not have to change when the source shared
+# folder is moved. Both the Salt state and the Start button run through
+# this helper, so the file is created on whichever path comes first.
+prepare_config() {
+	_ref="$(conf_value conf.service.filebrowserquantum dataRef)"
+	[ -n "$_ref" ] || return 0
+	_dir="$(ref_path "$_ref")"
+	[ -n "$_dir" ] && [ -d "$_dir" ] || return 0
+	[ -f "$_dir/config.yaml" ] && return 0
+	cat > "$_dir/config.yaml" <<'EOF'
+server:
+  cacheDir: /home/filebrowser/data/tmp
+  sources:
+    - path: /srv
+      config:
+        defaultEnabled: true
+EOF
+	chmod 0644 "$_dir/config.yaml"
+	echo "Created a default config.yaml in $_dir."
+}
+
+case "$CMD" in
+	up)
+		prepare_config
+		dc up -d --remove-orphans
+	;;
+	down)
+		dc down --remove-orphans
+	;;
+	restart)
+		dc restart
+	;;
+	upgrade)
+		dc pull --ignore-pull-failures || true
+		dc up -d --remove-orphans
+	;;
+	status)
+		_dir="$(stack_dir)"
+		if [ -z "$_dir" ] || [ ! -f "$_dir/$STACK.yml" ]; then
+			echo "notinstalled"
+			exit 0
+		fi
+		running=$(dc ps --status running -q 2>/dev/null | wc -l)
+		if [ "$running" -ge 1 ]; then
+			echo "running"
+		else
+			echo "stopped"
+		fi
+	;;
+	version)
+		# Image tag of the running container (the container is named
+		# after the stack). Read-only, no service is started.
+		if ! command -v docker >/dev/null 2>&1; then
+			exit 0
+		fi
+		_img="$(docker inspect --format '{{.Config.Image}}' "$CONTAINER" 2>/dev/null || true)"
+		[ -n "$_img" ] || exit 0
+		echo "${_img##*:}"
+	;;
+	latest)
+		# Latest upstream release tag of the requested channel. The
+		# GitHub releases Atom feed is used instead of the REST API:
+		# api.github.com is rate limited per IP and then fails, whereas
+		# the feed is not. Release tags look like v2.0.10-beta or
+		# v1.5.8-stable, so the channel is matched with a '-<channel>'
+		# suffix.
+		_ch="${ARG:-stable}"
+		curl -fsS --max-time 6 \
+			https://github.com/gtsteffaniak/filebrowser/releases.atom 2>/dev/null \
+			| grep -o '<title[^>]*>[^<]*</title>' \
+			| sed -n 's#.*<title[^>]*>\([^<]*\)</title>.*#\1#p' \
+			| grep -- "-${_ch}" \
+			| head -n 1
+	;;
+	logs)
+		dc logs --tail 300
+	;;
+	showcompose)
+		cat "$(stack_dir)/$STACK.yml" 2>/dev/null || true
+	;;
+	path)
+		stack_dir
+	;;
+	unregister)
+		# Remove the stack from the Compose plugin (used when the plugin
+		# is removed). The data and source shared folders are not
+		# touched; only the container and the generated stack files are
+		# removed by the Compose plugin.
+		if [ ! -x /usr/sbin/omv-rpc ]; then
+			echo "omv-rpc not available - skipping."
+			exit 0
+		fi
+		_uuid="$(omv-rpc -u admin Config get '{"id":"conf.service.compose.file"}' 2>/dev/null \
+			| python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    data = []
+if isinstance(data, dict):
+    data = data.get("data", []) or []
+for obj in data:
+    if isinstance(obj, dict) and obj.get("name") == "filebrowserquantum":
+        print(obj.get("uuid", ""))
+        break
+' 2>/dev/null)"
+		if [ -n "$_uuid" ]; then
+			echo "Removing the FileBrowser Quantum stack from the Compose plugin ..."
+			omv-rpc -u admin Compose deleteFile "{\"uuid\":\"$_uuid\"}" >/dev/null 2>&1 \
+				&& echo "The stack was removed." \
+				|| echo "The stack could not be removed automatically - delete it on the Compose page."
+		else
+			echo "No FileBrowser Quantum stack registered in the Compose plugin."
+		fi
+	;;
+esac
+
+exit 0

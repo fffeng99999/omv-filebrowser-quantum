@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+%:
+	dh $@
+
+# Windows checkouts do not preserve the executable bit; force the
+# correct modes on the shipped scripts before packaging.
+execute_before_dh_installdeb:
+	chmod 0755 debian/openmediavault-filebrowser-quantum.postinst
+	chmod 0755 debian/openmediavault-filebrowser-quantum.prerm
+	chmod 0755 debian/openmediavault-filebrowser-quantum.postrm
+	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/sbin/omv-filebrowserquantum-ctl || true
+	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/share/openmediavault/confdb/create.d/*.sh

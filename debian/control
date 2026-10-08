@@ -1,0 +1,23 @@
+Source: openmediavault-filebrowser-quantum
+Section: web
+XB-Plugin-Section: services
+XB-Plugin-Architecture: all
+Priority: optional
+Maintainer: ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>
+Build-Depends: debhelper (>= 12)
+Standards-Version: 3.9.6
+Homepage: https://github.com/${GITHUB_USER}/omv-filebrowser-quantum
+
+Package: openmediavault-filebrowser-quantum
+Architecture: all
+Depends: openmediavault (>= 8.0), openmediavault-compose (>= 8.2.0)
+Priority: optional
+Description: openmediavault FileBrowser Quantum plugin
+ Manage the FileBrowser Quantum web file manager (a modern fork of the
+ archived FileBrowser) from the OpenMediaVault web interface. The Docker
+ container is registered in the openmediavault-compose plugin, so it
+ follows the Compose plugin conventions and can be inspected, edited and
+ started on the Compose page; the plugin provides start/stop/restart/
+ update buttons, reports the container state, the running version and
+ available upstream updates and can open the web interface. Includes
+ Chinese translations.

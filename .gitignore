@@ -1,0 +1,9 @@
+dist/
+*.deb
+*.buildinfo
+*.changes
+*.upload
+debian/.debhelper/
+debian/openmediavault-filebrowser-quantum/
+debian/files
+debian/debhelper-build-stamp

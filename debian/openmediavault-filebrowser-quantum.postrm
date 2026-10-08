@@ -1,0 +1,41 @@
+#!/usr/bin/env dash
+#
+# This file is part of OpenMediaVault.
+#
+# @license   https://www.gnu.org/licenses/gpl.html GPL Version 3
+# @author    ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>
+#
+# OpenMediaVault is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+set -e
+
+. /etc/default/openmediavault
+. /usr/share/openmediavault/scripts/helper-functions
+
+case "$1" in
+	purge)
+		echo "Cleaning up configuration database ..."
+		omv_config_delete "/config/services/filebrowserquantum"
+		# Activate trigger to rebuild workbench configuration files.
+		dpkg-trigger update-workbench
+		# The data and source shared folders are user data and are never
+		# deleted here. The generated stack files and the container were
+		# already removed by 'omv-filebrowserquantum-ctl unregister' in
+		# prerm.
+	;;
+
+	remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+		# Activate trigger to rebuild workbench configuration files.
+		dpkg-trigger update-workbench
+	;;
+
+	*)
+		echo "postrm called with unknown argument '$1'" >&2
+		exit 1
+	;;
+esac
+
+exit 0

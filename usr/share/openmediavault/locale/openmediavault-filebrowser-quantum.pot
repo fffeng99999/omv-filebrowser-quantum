@@ -1,0 +1,160 @@
+# Translation template for openmediavault-filebrowser-quantum.
+# Copyright (C) 2026 ${GITHUB_USER}
+# This file is distributed under the same license as the openmediavault-filebrowser-quantum package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-08 12:00+0800\n"
+"PO-Revision-Date: 2026-10-08 12:00+0800\n"
+"Last-Translator: ${GITHUB_USER}\n"
+"Language-Team: \n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "FileBrowser Quantum"
+msgstr ""
+
+msgid "Updated FileBrowser Quantum settings."
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Stopped"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
+msgid "FileBrowser Quantum is a self-hosted web file manager (a modern fork of the archived FileBrowser). The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected or edited; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data and source shared folders, save, then click Apply and use the buttons below to deploy and manage the container."
+msgstr ""
+
+msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Service status"
+msgstr ""
+
+msgid "Running version"
+msgstr ""
+
+msgid "Latest version"
+msgstr ""
+
+msgid "Update available"
+msgstr ""
+
+msgid "Service"
+msgstr ""
+
+msgid "Enabled"
+msgstr ""
+
+msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data and source folders are kept)."
+msgstr ""
+
+msgid "Storage"
+msgstr ""
+
+msgid "Stack file (Compose plugin)"
+msgstr ""
+
+msgid "Stack file location. The stack files are rendered by the Compose plugin into its shared folder and are managed there, so this path cannot be changed here. Set the folder in Services -> Compose -> Settings."
+msgstr ""
+
+msgid "Data shared folder"
+msgstr ""
+
+msgid "Shared folder for the FileBrowser Quantum configuration, its SQLite database and the cache (mounted at /home/filebrowser/data). Put it on the data array. Changing it later starts from an empty configuration in the new folder - the previous data is not deleted."
+msgstr ""
+
+msgid "Source shared folder"
+msgstr ""
+
+msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
+msgstr ""
+
+msgid "Container"
+msgstr ""
+
+msgid "Image tag"
+msgstr ""
+
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
+msgstr ""
+
+msgid "Image variant"
+msgstr ""
+
+msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
+msgstr ""
+
+msgid "Full (media and document previews)"
+msgstr ""
+
+msgid "Slim (core service only)"
+msgstr ""
+
+msgid "Network"
+msgstr ""
+
+msgid "Web port"
+msgstr ""
+
+msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Restart"
+msgstr ""
+
+msgid "Upgrade"
+msgstr ""
+
+msgid "View logs"
+msgstr ""
+
+msgid "View compose file"
+msgstr ""
+
+msgid "Open FileBrowser Quantum"
+msgstr ""
+
+msgid "FileBrowser Quantum deploy/start output"
+msgstr ""
+
+msgid "Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept."
+msgstr ""
+
+msgid "FileBrowser Quantum stop output"
+msgstr ""
+
+msgid "Do you really want to restart the FileBrowser Quantum container?"
+msgstr ""
+
+msgid "FileBrowser Quantum restart output"
+msgstr ""
+
+msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
+msgstr ""
+
+msgid "FileBrowser Quantum upgrade output"
+msgstr ""
+
+msgid "FileBrowser Quantum logs"
+msgstr ""
+
+msgid "Rendered docker-compose.yml"
+msgstr ""

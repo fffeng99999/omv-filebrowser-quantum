@@ -1,0 +1,35 @@
+#!/usr/bin/env dash
+#
+# This file is part of OpenMediaVault.
+#
+# @license   https://www.gnu.org/licenses/gpl.html GPL Version 3
+# @author    ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>
+#
+# OpenMediaVault is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+
+set -e
+
+case "$1" in
+	remove)
+		# Unregister the FileBrowser Quantum container from the
+		# openmediavault-compose plugin: the Compose plugin stops the
+		# container and removes the generated stack files. The data and
+		# source shared folders are user data and are never touched.
+		# Best effort only, a failure must not block the removal.
+		/usr/sbin/omv-filebrowserquantum-ctl unregister || true
+	;;
+
+	upgrade|failed-upgrade|abort-install|abort-upgrade|disappear|purge)
+		# The stack is kept as is; an upgrade must not interrupt it.
+	;;
+
+	*)
+		echo "prerm called with unknown argument '$1'" >&2
+		exit 1
+	;;
+esac
+
+exit 0
