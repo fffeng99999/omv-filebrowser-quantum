@@ -162,16 +162,17 @@ case "$CMD" in
 		echo "${_img##*:}"
 	;;
 	latest)
-		# Latest upstream release tag of the requested channel. Release
-		# tags look like v2.0.10-beta or v1.5.8-stable, so the channel is
-		# matched with a '-<channel>' suffix.
+		# Latest upstream release tag of the requested channel. The
+		# channel is matched on the tag suffix (v2.0.10-beta,
+		# v1.5.8-stable): upstream does not set the GitHub 'prerelease'
+		# flag on its -beta/-preview tags, so that flag must not be used.
 		#
 		# Primary source is the GitHub releases Atom feed (github.com):
 		# the anonymous REST API is rate limited per IP and then fails,
 		# whereas the feed does not. Some networks cannot reach
 		# github.com while api.github.com works (and vice versa), so the
 		# rate limited REST API is only used as a fallback when the feed
-		# produced nothing.
+		# produced nothing. Both sources list the releases newest-first.
 		_ch="${ARG:-stable}"
 		_tag=$(curl -fsS --max-time 6 \
 			https://github.com/gtsteffaniak/filebrowser/releases.atom 2>/dev/null \
@@ -180,23 +181,12 @@ case "$CMD" in
 			| grep -- "-${_ch}" \
 			| head -n 1)
 		if [ -z "$_tag" ]; then
-			if [ "$_ch" = "beta" ]; then
-				_want="true"
-			else
-				_want="false"
-			fi
-			# The REST API lists releases newest-first; the first entry
-			# whose 'prerelease' flag matches the channel wins
-			# (drafts are skipped).
 			_tag=$(curl -fsS --max-time 8 \
 				https://api.github.com/repos/gtsteffaniak/filebrowser/releases 2>/dev/null \
-				| grep -E '"tag_name"|"draft"|"prerelease"' \
-				| awk -v want="$_want" '
-					/"tag_name":/   { sub(/.*"tag_name": *"/, ""); sub(/".*/, ""); tag=$0 }
-					/"draft":/      { sub(/.*"draft": */, ""); sub(/,.*/, ""); draft=$0 }
-					/"prerelease":/ { sub(/.*"prerelease": */, ""); sub(/,.*/, ""); pre=$0
-					                  if (draft != "true" && pre == want) { print tag; exit } }
-				')
+				| grep -o '"tag_name": *"[^"]*"' \
+				| sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' \
+				| grep -- "-${_ch}" \
+				| head -n 1)
 		fi
 		[ -n "$_tag" ] && echo "$_tag"
 	;;
