@@ -20,7 +20,10 @@ openmediavault-filebrowser-quantum (8.0.1) stable; urgency=medium
       afterwards, so the web interface works out of the box.
     - Live status: container state, running image version, latest
       upstream release for the configured channel and update
-      detection, log viewer and rendered compose file preview.
+      detection, log viewer and rendered compose file preview. The
+      upstream release is read from the GitHub releases feed, with the
+      (rate limited) REST API as a fallback for networks where the
+      feed host is unreachable.
     - Start/Stop/Restart/Upgrade run as background tasks (through the
       Compose plugin helper omv-compose-run) with live output.
     - Simplified and Traditional Chinese translations included.
