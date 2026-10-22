@@ -17,7 +17,7 @@ omv-extras 里另有一个 `openmediavault-filebrowser` 插件，封装的是**�
 
 ## 集成模式
 
-按工作区 `.trae/skills/omv-plugin-dev/references/integration-modes.md` 的三轨决策树，
+按工作区 `.dsh/skills/omv-plugin-dev/references/integration-modes.md` 的三轨决策树，
 FileBrowser Quantum 上游**只发 Docker 镜像** → 走 **轨 1（Compose 轨）**，参照 `omv-immich`：
 
 - 保存设置时插件调用 Compose RPC（`Compose.setFile`）把栈注册进 `conf.service.compose.file`，
