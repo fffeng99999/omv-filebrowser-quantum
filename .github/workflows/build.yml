@@ -58,6 +58,11 @@ jobs:
             sh -n "$f" && echo "OK: $f"
           done
 
+      - name: Install gettext
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gettext
+
       - name: Validate gettext catalogs
         run: |
           for f in usr/share/openmediavault/locale/*.pot \
