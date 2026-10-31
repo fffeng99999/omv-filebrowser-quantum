@@ -17,53 +17,44 @@
 #
 # Both branches go through /usr/sbin/omv-filebrowserquantum-ctl, which
 # wraps the Compose plugin helper 'omv-compose-run' with the same
-# --file/--env-file arguments as the Compose web UI. The 'up' command
-# also creates a minimal config.yaml (source mounted at the container
-# path /srv) in the data shared folder when it does not exist yet; an
-# existing file is never overwritten. So the same code path is used
-# whether the container is started through Apply or through the Start
-# button.
-#
-# The data is never touched here. When the Compose plugin is not
-# configured yet, or the storage is not selected yet, the whole state is
-# skipped so that applying the configuration never fails.
+# --file/--env-file arguments as the Compose web UI.
 
 {% set config = salt['omv_conf.get']('conf.service.filebrowserquantum') %}
 {% set compose = salt['omv_conf.get']('conf.service.compose') %}
-{% if compose.sharedfolderref | length > 0 and config.dataRef | length > 0 and config.sourceRef | length > 0 %}
+{% set stackfile = salt['cmd.run']('/usr/sbin/omv-filebrowserquantum-ctl path', python_shell=False) ~ '/filebrowserquantum.yml' %}
 
-{% set sfpath = salt['omv_conf.get_sharedfolder_path'](compose.sharedfolderref).rstrip('/') %}
-{% set stackfile = sfpath ~ '/filebrowserquantum/filebrowserquantum.yml' %}
+# Precondition check: Compose shared folder and data folder must be configured
+{% if compose.sharedfolderref | length > 0 and config.dataRef | length > 0 %}
 
 {% if config.enable | to_bool %}
-
-# Enabled: make sure the container is running (idempotent; it is
-# recreated automatically when the rendered stack files changed).
 filebrowserquantum_stack_up:
   cmd.run:
     - name: /usr/sbin/omv-filebrowserquantum-ctl up
     - onlyif: test -f '{{ stackfile }}'
 
+filebrowserquantum_health_check:
+  cmd.run:
+    - name: /usr/sbin/omv-filebrowserquantum-ctl status
+    - require:
+      - cmd: filebrowserquantum_stack_up
 {% else %}
-
-# Disabled: remove the container but never touch the data or the config
-# file. Skipped when the stack was never registered.
 filebrowserquantum_stack_down:
   cmd.run:
     - name: /usr/sbin/omv-filebrowserquantum-ctl down
     - onlyif: test -f '{{ stackfile }}'
-
 {% endif %}
 
 {% else %}
-
-# The Compose plugin shared folder or the plugin storage is not
-# configured yet: nothing to do.
+# Fallback branch: Compose or Data folder not configured or unassigned
 filebrowserquantum_not_configured:
   test.configurable_test_state:
-    - name: filebrowserquantum_not_configured
-    - changes: False
+    - name: "FileBrowser Quantum skipped: Compose shared folder or Data folder not configured."
     - result: True
-    - comment: "Configure the Compose plugin (Services -> Compose -> Settings) and select the data and source shared folders first."
+    - changes: False
 
+# Clean up running container if storage was unassigned while container was running
+filebrowserquantum_cleanup_orphans:
+  cmd.run:
+    - name: /usr/sbin/omv-filebrowserquantum-ctl down
+    - onlyif: docker ps --filter name=^filebrowserquantum$ --filter status=running -q | grep -q .
 {% endif %}

@@ -1,0 +1,7 @@
+version: "1.0"
+type: route
+data:
+  url: "/services/filebrowserquantum/sources/create"
+  title: _("Add source")
+  notificationTitle: _("Added source.")
+  component: omv-services-filebrowserquantum-storage-form-page

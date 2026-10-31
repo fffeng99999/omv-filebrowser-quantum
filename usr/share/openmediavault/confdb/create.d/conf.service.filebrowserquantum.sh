@@ -25,6 +25,15 @@ set -e
 #       <imageVariant>full|slim</imageVariant>
 #       <dataRef>uuid-or-empty</dataRef>
 #       <sourceRef>uuid-or-empty</sourceRef>
+#       <baseURL></baseURL>
+#       <appUrl></appUrl>
+#       <trustProxyHeaders>0|1</trustProxyHeaders>
+#       <authMethod>password|noauth|proxy</authMethod>
+#       <puid>1000</puid>
+#       <pgid>100</pgid>
+#       <maskProtected>0|1</maskProtected>
+#       <extraOptions></extraOptions>
+#       <sources></sources>
 #     </filebrowserquantum>
 #   </services>
 # </config>
@@ -37,6 +46,20 @@ if ! omv_config_exists "/config/services/filebrowserquantum"; then
 	omv_config_add_key "/config/services/filebrowserquantum" "imageVariant" "full"
 	omv_config_add_key "/config/services/filebrowserquantum" "dataRef" ""
 	omv_config_add_key "/config/services/filebrowserquantum" "sourceRef" ""
+	omv_config_add_key "/config/services/filebrowserquantum" "baseURL" ""
+	omv_config_add_key "/config/services/filebrowserquantum" "appUrl" ""
+	omv_config_add_key "/config/services/filebrowserquantum" "trustProxyHeaders" "0"
+	omv_config_add_key "/config/services/filebrowserquantum" "authMethod" "password"
+	omv_config_add_key "/config/services/filebrowserquantum" "puid" "1000"
+	omv_config_add_key "/config/services/filebrowserquantum" "pgid" "100"
+	omv_config_add_key "/config/services/filebrowserquantum" "maskProtected" "1"
+	omv_config_add_key "/config/services/filebrowserquantum" "extraOptions" ""
+fi
+
+# The sources container node holds child source entries.
+if omv_config_exists "/config/services/filebrowserquantum" && \
+		! omv_config_exists "/config/services/filebrowserquantum/sources"; then
+	omv_config_add_node "/config/services/filebrowserquantum" "sources"
 fi
 
 exit 0

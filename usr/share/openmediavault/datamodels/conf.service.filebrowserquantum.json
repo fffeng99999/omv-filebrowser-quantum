@@ -31,25 +31,119 @@
 		},
 		"dataRef": {
 			"type": "string",
-			"oneOf": [{
-				"type": "string",
-				"format": "uuidv4"
-			}, {
-				"type": "string",
-				"maxLength": 0
-			}],
+			"oneOf": [
+				{
+					"type": "string",
+					"format": "uuidv4"
+				},
+				{
+					"type": "string",
+					"maxLength": 0
+				}
+			],
 			"default": ""
 		},
 		"sourceRef": {
 			"type": "string",
-			"oneOf": [{
-				"type": "string",
-				"format": "uuidv4"
-			}, {
-				"type": "string",
-				"maxLength": 0
-			}],
+			"oneOf": [
+				{
+					"type": "string",
+					"format": "uuidv4"
+				},
+				{
+					"type": "string",
+					"maxLength": 0
+				}
+			],
 			"default": ""
+		},
+		"baseURL": {
+			"type": "string",
+			"default": ""
+		},
+		"appUrl": {
+			"type": "string",
+			"default": ""
+		},
+		"trustProxyHeaders": {
+			"type": "boolean",
+			"default": false
+		},
+		"authMethod": {
+			"type": "string",
+			"enum": [
+				"password",
+				"noauth",
+				"proxy"
+			],
+			"default": "password"
+		},
+		"puid": {
+			"type": "integer",
+			"minimum": 0,
+			"maximum": 65535,
+			"default": 1000
+		},
+		"pgid": {
+			"type": "integer",
+			"minimum": 0,
+			"maximum": 65535,
+			"default": 100
+		},
+		"maskProtected": {
+			"type": "boolean",
+			"default": true
+		},
+		"extraOptions": {
+			"type": "string",
+			"default": ""
+		},
+		"sources": {
+			"type": "object",
+			"properties": {
+				"source": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"properties": {
+							"uuid": {
+								"type": "string",
+								"format": "uuidv4"
+							},
+							"sharedfolderref": {
+								"type": "string",
+								"oneOf": [
+									{
+										"type": "string",
+										"format": "uuidv4"
+									},
+									{
+										"type": "string",
+										"maxLength": 0
+									}
+								],
+								"default": ""
+							},
+							"path": {
+								"type": "string",
+								"default": "/srv"
+							},
+							"name": {
+								"type": "string",
+								"default": ""
+							},
+							"readonly": {
+								"type": "boolean",
+								"default": false
+							},
+							"defaultEnabled": {
+								"type": "boolean",
+								"default": true
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

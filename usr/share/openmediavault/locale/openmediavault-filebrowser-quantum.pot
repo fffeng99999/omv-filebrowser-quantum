@@ -1,25 +1,16 @@
 # Translation template for openmediavault-filebrowser-quantum.
-# Copyright (C) 2026 ${GITHUB_USER}
-# This file is distributed under the same license as the openmediavault-filebrowser-quantum package.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.0.1\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-08 12:00+0800\n"
-"PO-Revision-Date: 2026-10-08 12:00+0800\n"
+"POT-Creation-Date: 2026-10-31 22:30+0800\n"
+"PO-Revision-Date: 2026-10-31 22:30+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: \n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-
-msgid "FileBrowser Quantum"
-msgstr ""
-
-msgid "Updated FileBrowser Quantum settings."
-msgstr ""
 
 msgid "Running"
 msgstr ""
@@ -30,7 +21,10 @@ msgstr ""
 msgid "Not installed"
 msgstr ""
 
-msgid "FileBrowser Quantum is a self-hosted web file manager (a modern fork of the archived FileBrowser). The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected or edited; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data and source shared folders, save, then click Apply and use the buttons below to deploy and manage the container."
+msgid "No paths masked"
+msgstr ""
+
+msgid "FileBrowser Quantum is a modern, high-performance web file manager. The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data shared folder, configure storage sources on the Sources tab, save, then click Apply and use the buttons below to deploy and manage the container."
 msgstr ""
 
 msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
@@ -51,13 +45,46 @@ msgstr ""
 msgid "Update available"
 msgstr ""
 
+msgid "Configured sources"
+msgstr ""
+
+msgid "Number of storage sources configured on the Sources tab."
+msgstr ""
+
 msgid "Service"
 msgstr ""
 
 msgid "Enabled"
 msgstr ""
 
-msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data and source folders are kept)."
+msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data folder and storage sources are kept). The data folder and at least one storage source must be configured first."
+msgstr ""
+
+msgid "Web port"
+msgstr ""
+
+msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
+msgstr ""
+
+msgid "Image tag"
+msgstr ""
+
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
+msgstr ""
+
+msgid "FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta)."
+msgstr ""
+
+msgid "Image variant"
+msgstr ""
+
+msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
+msgstr ""
+
+msgid "Full (media and document previews)"
+msgstr ""
+
+msgid "Slim (core service only)"
 msgstr ""
 
 msgid "Storage"
@@ -75,64 +102,88 @@ msgstr ""
 msgid "Shared folder for the FileBrowser Quantum configuration, its SQLite database and the cache (mounted at /home/filebrowser/data). Put it on the data array. Changing it later starts from an empty configuration in the new folder - the previous data is not deleted."
 msgstr ""
 
-msgid "Source shared folder"
+msgid "User ID (PUID)"
 msgstr ""
 
-msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
+msgid "User ID for the container process and files written to shared folders."
 msgstr ""
 
-msgid "Container"
+msgid "Group ID (PGID)"
 msgstr ""
 
-msgid "Image tag"
-msgstr ""
-
-msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
-msgstr ""
-
-msgid "Image variant"
-msgstr ""
-
-msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
-msgstr ""
-
-msgid "Full (media and document previews)"
-msgstr ""
-
-msgid "Slim (core service only)"
+msgid "Group ID for the container process and files written to shared folders."
 msgstr ""
 
 msgid "Network"
 msgstr ""
 
-msgid "Web port"
+msgid "Base URL"
 msgstr ""
 
-msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
+msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain."
+msgstr ""
+
+msgid "Application URL"
+msgstr ""
+
+msgid "Optional public URL used for external links (e.g. https://files.example.com)."
+msgstr ""
+
+msgid "Trust proxy headers"
+msgstr ""
+
+msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection."
+msgstr ""
+
+msgid "Authentication method"
+msgstr ""
+
+msgid "Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication)."
+msgstr ""
+
+msgid "Password (internal user database)"
+msgstr ""
+
+msgid "No authentication (public access)"
+msgstr ""
+
+msgid "Proxy header authentication"
+msgstr ""
+
+msgid "Security and advanced"
+msgstr ""
+
+msgid "Auto-mask protected directories"
+msgstr ""
+
+msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks."
+msgstr ""
+
+msgid "Masked path count"
+msgstr ""
+
+msgid "Number of tmpfs masks currently configured in the rendered stack file."
+msgstr ""
+
+msgid "Masked container paths"
+msgstr ""
+
+msgid "The container paths currently masked in the rendered stack file. Empty when nothing needs masking."
+msgstr ""
+
+msgid "Extra environment options"
+msgstr ""
+
+msgid "Additional environment variables passed to the container, one per line in KEY=VALUE format. Lines starting with # are ignored."
 msgstr ""
 
 msgid "Start"
 msgstr ""
 
-msgid "Stop"
-msgstr ""
-
-msgid "Restart"
-msgstr ""
-
-msgid "Upgrade"
-msgstr ""
-
-msgid "View logs"
-msgstr ""
-
-msgid "View compose file"
-msgstr ""
-
-msgid "Open FileBrowser Quantum"
-msgstr ""
-
 msgid "FileBrowser Quantum deploy/start output"
+msgstr ""
+
+msgid "Stop"
 msgstr ""
 
 msgid "Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept."
@@ -141,10 +192,16 @@ msgstr ""
 msgid "FileBrowser Quantum stop output"
 msgstr ""
 
+msgid "Restart"
+msgstr ""
+
 msgid "Do you really want to restart the FileBrowser Quantum container?"
 msgstr ""
 
 msgid "FileBrowser Quantum restart output"
+msgstr ""
+
+msgid "Upgrade"
 msgstr ""
 
 msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
@@ -153,8 +210,99 @@ msgstr ""
 msgid "FileBrowser Quantum upgrade output"
 msgstr ""
 
+msgid "Check for latest version"
+msgstr ""
+
+msgid "Queried the latest upstream version. Save and apply, or use the Upgrade button."
+msgstr ""
+
+msgid "View logs"
+msgstr ""
+
 msgid "FileBrowser Quantum logs"
+msgstr ""
+
+msgid "View compose file"
 msgstr ""
 
 msgid "Rendered docker-compose.yml"
 msgstr ""
+
+msgid "Open FileBrowser Quantum"
+msgstr ""
+
+msgid "Shared folder"
+msgstr ""
+
+msgid "Container path"
+msgstr ""
+
+msgid "Display name"
+msgstr ""
+
+msgid "Read-only"
+msgstr ""
+
+msgid "Default enabled"
+msgstr ""
+
+msgid "A storage source mounts a shared folder into the FileBrowser Quantum container so its files can be browsed and managed in the web interface. You can expose multiple shared folders into the container."
+msgstr ""
+
+msgid "Do not select the Compose plugin shared folder itself, a system directory, the RustFS object store or the Docker data root. Such folders are rejected or masked automatically so FileBrowser Quantum cannot read their credentials or its own state."
+msgstr ""
+
+msgid "Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below)."
+msgstr ""
+
+msgid "Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically."
+msgstr ""
+
+msgid "Must be an absolute path without a colon (e.g. /srv/photos)."
+msgstr ""
+
+msgid "Optional display name for this storage source. Leave empty to use the shared folder name."
+msgstr ""
+
+msgid "Mount the folder read-only (':ro'), preventing changes from within FileBrowser Quantum."
+msgstr ""
+
+msgid "Automatically enable this storage source for newly created users."
+msgstr ""
+
+msgid "Settings"
+msgstr ""
+
+msgid "Sources"
+msgstr ""
+
+msgid "FileBrowser Quantum"
+msgstr ""
+
+msgid "Updated FileBrowser Quantum settings."
+msgstr ""
+
+msgid "Add source"
+msgstr ""
+
+msgid "Added source."
+msgstr ""
+
+msgid "Edit source"
+msgstr ""
+
+msgid "Updated source."
+msgstr ""
+
+msgid "Full"
+msgstr ""
+
+msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
+msgstr ""
+
+msgid "Slim"
+msgstr ""
+
+msgid "Source shared folder"
+msgstr ""
+

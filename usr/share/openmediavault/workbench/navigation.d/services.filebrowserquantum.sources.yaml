@@ -1,0 +1,11 @@
+version: "1.0"
+type: navigation-item
+data:
+  path: "services.filebrowserquantum.sources"
+  text: _("Sources")
+  position: 20
+  icon: "mdi:folder-multiple"
+  url: "/services/filebrowserquantum/sources"
+  permissions:
+    role:
+      - admin

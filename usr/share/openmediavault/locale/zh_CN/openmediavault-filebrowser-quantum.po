@@ -1,26 +1,18 @@
-# Translation of openmediavault-filebrowser-quantum in Chinese (China).
 # Copyright (C) 2026 ${GITHUB_USER}
 # This file is distributed under the same license as the openmediavault-filebrowser-quantum package.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.0.1\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-08 12:00+0800\n"
-"PO-Revision-Date: 2026-10-08 12:00+0800\n"
+"POT-Creation-Date: 2026-10-31 22:30+0800\n"
+"PO-Revision-Date: 2026-10-31 22:30+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
-"Language-Team: Chinese (China)\n"
+"Language-Team: Chinese (Simplified) <openmediavault-plugins@googlegroups.com>\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
-
-msgid "FileBrowser Quantum"
-msgstr "FileBrowser Quantum"
-
-msgid "Updated FileBrowser Quantum settings."
-msgstr "已更新 FileBrowser Quantum 设置。"
 
 msgid "Running"
 msgstr "运行中"
@@ -31,11 +23,14 @@ msgstr "已停止"
 msgid "Not installed"
 msgstr "未安装"
 
-msgid "FileBrowser Quantum is a self-hosted web file manager (a modern fork of the archived FileBrowser). The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected or edited; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data and source shared folders, save, then click Apply and use the buttons below to deploy and manage the container."
-msgstr "FileBrowser Quantum 是自托管的网页文件管理器（已归档的 FileBrowser 的现代分支）。容器由 Compose 插件创建（服务 → Compose → 文件），也可在那里查看或编辑；请先在 服务 → Compose → 设置 中选好 Compose 共享文件夹。选择数据与源共享文件夹，保存后点击“应用”，再用下方按钮部署和管理容器。"
+msgid "No paths masked"
+msgstr "无需遮蔽"
+
+msgid "FileBrowser Quantum is a modern, high-performance web file manager. The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data shared folder, configure storage sources on the Sources tab, save, then click Apply and use the buttons below to deploy and manage the container."
+msgstr "FileBrowser Quantum 是现代、高性能网络文件管理器。容器在 Compose 插件中创建（服务 → Compose → 文件），也可在那里查看；请先配置 Compose 插件的共享文件夹（服务 → Compose → 设置）。选择数据共享文件夹，在「存储源」标签页配置存储源，保存并点「应用」，然后用下方按钮部署和管理容器。"
 
 msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
-msgstr "本插件管理 FileBrowser Quantum v2 系列（数据文件夹内的 config.yaml 与 SQLite 数据库）；v1.5.x 系列使用不同的配置格式，不受支持。首次启动会生成随机管理员密码并写入容器日志——打开网页界面后请立即修改。"
+msgstr "本插件管理 FileBrowser Quantum v2 产品线（数据文件夹中的 config.yaml 和 SQLite 数据库）；v1.5.x 产品线采用不同配置格式且不受支持。初次启动时会生成随机管理员口令并写入容器日志——请打开 Web 界面并立即修改。"
 
 msgid "Status"
 msgstr "状态"
@@ -52,14 +47,47 @@ msgstr "最新版本"
 msgid "Update available"
 msgstr "有可用更新"
 
+msgid "Configured sources"
+msgstr "已配置存储源数"
+
+msgid "Number of storage sources configured on the Sources tab."
+msgstr "在「存储源」标签页配置的存储源数量。"
+
 msgid "Service"
 msgstr "服务"
 
 msgid "Enabled"
-msgstr "已启用"
+msgstr "启用"
 
-msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data and source folders are kept)."
-msgstr "由 OMV 自动管理容器。应用时创建（或重建）容器；关闭服务后应用会移除容器（数据与源文件夹保留）。"
+msgid "Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data folder and storage sources are kept). The data folder and at least one storage source must be configured first."
+msgstr "由 OMV 自动管理容器。应用时（重新）创建容器；禁用服务会在应用时移除容器（数据文件夹和存储源保留）。必须先配置数据文件夹和至少一个存储源。"
+
+msgid "Web port"
+msgstr "Web 端口"
+
+msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
+msgstr "FileBrowser Quantum Web 界面在宿主机上的端口（容器内监听端口 80）。"
+
+msgid "Image tag"
+msgstr "镜像标签"
+
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
+msgstr "ghcr.io/gtsteffaniak/filebrowser 镜像的 Docker 标签，不含开头的 'v'（例如 2.0.10-beta）。请使用 v2 标签；使用具体版本号（而非 'beta' 或 'stable'）可确保部署可复现。在此修改后应用，或使用「升级」按钮。"
+
+msgid "FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta)."
+msgstr "不支持 FileBrowser v1.x 标签。请使用 v2 标签（例如 2.0.10-beta）。"
+
+msgid "Image variant"
+msgstr "镜像变体"
+
+msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
+msgstr "'Full' 包含 FFmpeg 和文档预览（镜像体积较大）；'Slim' 仅包含核心服务（体积小得多，无媒体/文档预览）。"
+
+msgid "Full (media and document previews)"
+msgstr "Full（含多媒体与文档预览）"
+
+msgid "Slim (core service only)"
+msgstr "Slim（仅核心服务）"
 
 msgid "Storage"
 msgstr "存储"
@@ -68,79 +96,106 @@ msgid "Stack file (Compose plugin)"
 msgstr "栈文件（Compose 插件）"
 
 msgid "Stack file location. The stack files are rendered by the Compose plugin into its shared folder and are managed there, so this path cannot be changed here. Set the folder in Services -> Compose -> Settings."
-msgstr "栈文件位置。栈文件由 Compose 插件渲染到其共享文件夹并在此管理，因此该路径不能在此更改。请在 服务 → Compose → 设置 中设置文件夹。"
+msgstr "栈文件位置。栈文件由 Compose 插件渲染在其共享文件夹中并在那里管理，因此无法在此修改。请在 服务 → Compose → 设置 中配置该文件夹。"
 
 msgid "Data shared folder"
 msgstr "数据共享文件夹"
 
 msgid "Shared folder for the FileBrowser Quantum configuration, its SQLite database and the cache (mounted at /home/filebrowser/data). Put it on the data array. Changing it later starts from an empty configuration in the new folder - the previous data is not deleted."
-msgstr "FileBrowser Quantum 配置、SQLite 数据库与缓存所在的共享文件夹（挂载到容器内 /home/filebrowser/data）。请放在数据阵列上。之后更改会在新文件夹中以空配置重新开始——原数据不会被删除。"
+msgstr "用于 FileBrowser Quantum 配置、SQLite 数据库和缓存的共享文件夹（挂载在 /home/filebrowser/data）。请置于数据阵列上。后续若更换文件夹将从新文件夹中的空白配置开始——旧数据不会被删除。"
 
-msgid "Source shared folder"
-msgstr "源共享文件夹"
+msgid "User ID (PUID)"
+msgstr "用户 ID (PUID)"
 
-msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
-msgstr "在 FileBrowser Quantum 网页界面中浏览的文件所在共享文件夹（以读写方式挂载到容器内 /srv）。如需增加更多源，只能编辑数据共享文件夹中的 config.yaml。"
+msgid "User ID for the container process and files written to shared folders."
+msgstr "容器进程及写入共享文件夹文件所使用的用户 ID。"
 
-msgid "Container"
-msgstr "容器"
+msgid "Group ID (PGID)"
+msgstr "组 ID (PGID)"
 
-msgid "Image tag"
-msgstr "镜像标签"
-
-msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
-msgstr "ghcr.io/gtsteffaniak/filebrowser 镜像的 Docker 标签，不带前导 'v'（例如 2.0.10-beta）。请使用 v2 标签；固定具体版本（不要用 'beta' 或 'stable'）可保证部署可复现。在此修改后应用，或使用“升级”按钮。"
-
-msgid "Image variant"
-msgstr "镜像变体"
-
-msgid "'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews)."
-msgstr "“完整版”包含 FFmpeg 与文档预览（镜像较大）；“精简版”仅含核心服务（体积小得多，无媒体/文档预览）。"
-
-msgid "Full (media and document previews)"
-msgstr "完整版（媒体与文档预览）"
-
-msgid "Slim (core service only)"
-msgstr "精简版（仅核心服务）"
+msgid "Group ID for the container process and files written to shared folders."
+msgstr "容器进程及写入共享文件夹文件所使用的组 ID。"
 
 msgid "Network"
 msgstr "网络"
 
-msgid "Web port"
-msgstr "Web 端口"
+msgid "Base URL"
+msgstr "基准 URL (Base URL)"
 
-msgid "Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally)."
-msgstr "FileBrowser Quantum 网页界面在宿主机上的端口（容器内部固定监听 80 端口）。"
+msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain."
+msgstr "在反向代理子路径（例如 /files）后运行时可选的 URL 路径前缀。根域名访问请留空。"
+
+msgid "Application URL"
+msgstr "应用 URL"
+
+msgid "Optional public URL used for external links (e.g. https://files.example.com)."
+msgstr "用于外部链接的可选公网 URL（例如 https://files.example.com）。"
+
+msgid "Trust proxy headers"
+msgstr "信任代理标头"
+
+msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection."
+msgstr "信任来自反向代理的 X-Forwarded-* 标头以进行客户端 IP 和协议探测。"
+
+msgid "Authentication method"
+msgstr "身份验证方式"
+
+msgid "Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication)."
+msgstr "身份验证方式：password（标准内置用户数据库）、noauth（完全禁用身份验证）或 proxy（HTTP 标头代理认证）。"
+
+msgid "Password (internal user database)"
+msgstr "密码验证（内置用户数据库）"
+
+msgid "No authentication (public access)"
+msgstr "无需验证（公开访问）"
+
+msgid "Proxy header authentication"
+msgstr "代理标头验证"
+
+msgid "Security and advanced"
+msgstr "安全与高级选项"
+
+msgid "Auto-mask protected directories"
+msgstr "自动遮蔽敏感保护目录"
+
+msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks."
+msgstr "当 RustFS 对象存储、Compose 共享文件夹和 Docker data-root 位于挂载的存储源内部时，自动挂载空的只读 1 MiB tmpfs 进行遮蔽，防止循环递归和凭据泄露。"
+
+msgid "Masked path count"
+msgstr "遮蔽路径数"
+
+msgid "Number of tmpfs masks currently configured in the rendered stack file."
+msgstr "当前渲染的栈文件中已配置的 tmpfs 遮蔽项数量。"
+
+msgid "Masked container paths"
+msgstr "遮蔽的容器路径"
+
+msgid "The container paths currently masked in the rendered stack file. Empty when nothing needs masking."
+msgstr "当前在渲染栈文件中遮蔽的容器路径。无需遮蔽时为空。"
+
+msgid "Extra environment options"
+msgstr "额外环境变量选项"
+
+msgid "Additional environment variables passed to the container, one per line in KEY=VALUE format. Lines starting with # are ignored."
+msgstr "传递给容器的附加环境变量，每行一个 KEY=VALUE 格式。以 # 开头的行将被忽略。"
 
 msgid "Start"
 msgstr "启动"
 
-msgid "Stop"
-msgstr "停止"
-
-msgid "Restart"
-msgstr "重启"
-
-msgid "Upgrade"
-msgstr "升级"
-
-msgid "View logs"
-msgstr "查看日志"
-
-msgid "View compose file"
-msgstr "查看 compose 文件"
-
-msgid "Open FileBrowser Quantum"
-msgstr "打开 FileBrowser Quantum"
-
 msgid "FileBrowser Quantum deploy/start output"
 msgstr "FileBrowser Quantum 部署/启动输出"
 
+msgid "Stop"
+msgstr "停止"
+
 msgid "Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept."
-msgstr "确定要停止 FileBrowser Quantum 容器吗？容器会被移除；数据与源文件夹及设置均保留。"
+msgstr "确定要停止 FileBrowser Quantum 容器吗？容器会被移除；数据和存储源文件夹以及设置都会保留。"
 
 msgid "FileBrowser Quantum stop output"
 msgstr "FileBrowser Quantum 停止输出"
+
+msgid "Restart"
+msgstr "重启"
 
 msgid "Do you really want to restart the FileBrowser Quantum container?"
 msgstr "确定要重启 FileBrowser Quantum 容器吗？"
@@ -148,14 +203,108 @@ msgstr "确定要重启 FileBrowser Quantum 容器吗？"
 msgid "FileBrowser Quantum restart output"
 msgstr "FileBrowser Quantum 重启输出"
 
+msgid "Upgrade"
+msgstr "升级"
+
 msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
-msgstr "确定要升级 FileBrowser Quantum 容器吗？将针对所配置的标签拉取更新的镜像并重建容器。大版本升级前请阅读上游发布说明。"
+msgstr "确定要升级 FileBrowser Quantum 容器吗？将拉取所配置标签的最新镜像并重建容器。大版本升级前请阅读上游发布说明。"
 
 msgid "FileBrowser Quantum upgrade output"
 msgstr "FileBrowser Quantum 升级输出"
 
+msgid "Check for latest version"
+msgstr "检查最新版本"
+
+msgid "Queried the latest upstream version. Save and apply, or use the Upgrade button."
+msgstr "已查询上游最新版本。保存并应用，或使用「升级」按钮。"
+
+msgid "View logs"
+msgstr "查看日志"
+
 msgid "FileBrowser Quantum logs"
 msgstr "FileBrowser Quantum 日志"
 
+msgid "View compose file"
+msgstr "查看 compose 文件"
+
 msgid "Rendered docker-compose.yml"
 msgstr "渲染后的 docker-compose.yml"
+
+msgid "Open FileBrowser Quantum"
+msgstr "打开 FileBrowser Quantum"
+
+msgid "Shared folder"
+msgstr "共享文件夹"
+
+msgid "Container path"
+msgstr "容器路径"
+
+msgid "Display name"
+msgstr "显示名称"
+
+msgid "Read-only"
+msgstr "只读"
+
+msgid "Default enabled"
+msgstr "默认启用"
+
+msgid "A storage source mounts a shared folder into the FileBrowser Quantum container so its files can be browsed and managed in the web interface. You can expose multiple shared folders into the container."
+msgstr "存储源将共享文件夹挂载到 FileBrowser Quantum 容器中，以便在 Web 界面中浏览和管理其文件。你可以向容器中暴露多个共享文件夹。"
+
+msgid "Do not select the Compose plugin shared folder itself, a system directory, the RustFS object store or the Docker data root. Such folders are rejected or masked automatically so FileBrowser Quantum cannot read their credentials or its own state."
+msgstr "请勿选择 Compose 插件共享文件夹本身、系统目录、RustFS 对象存储或 Docker data-root。此类文件夹会被拒绝或自动遮蔽，使 FileBrowser Quantum 无法读取其凭据或自身状态。"
+
+msgid "Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below)."
+msgstr "暴露给 FileBrowser Quantum 的共享文件夹（绑定到下方的容器路径）。"
+
+msgid "Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically."
+msgstr "容器内的绝对路径（例如 /srv/photos）。留空则自动从共享文件夹名称生成。"
+
+msgid "Must be an absolute path without a colon (e.g. /srv/photos)."
+msgstr "必须是不含冒号的绝对路径（例如 /srv/photos）。"
+
+msgid "Optional display name for this storage source. Leave empty to use the shared folder name."
+msgstr "该存储源的可选显示名称。留空则使用共享文件夹名称。"
+
+msgid "Mount the folder read-only (':ro'), preventing changes from within FileBrowser Quantum."
+msgstr "以只读方式挂载文件夹 (':ro')，防止在 FileBrowser Quantum 中进行更改。"
+
+msgid "Automatically enable this storage source for newly created users."
+msgstr "自动为新创建的用户启用此存储源。"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Sources"
+msgstr "存储源"
+
+msgid "FileBrowser Quantum"
+msgstr "FileBrowser Quantum"
+
+msgid "Updated FileBrowser Quantum settings."
+msgstr "FileBrowser Quantum 设置已更新。"
+
+msgid "Add source"
+msgstr "添加存储源"
+
+msgid "Added source."
+msgstr "已添加存储源。"
+
+msgid "Edit source"
+msgstr "编辑存储源"
+
+msgid "Updated source."
+msgstr "存储源已更新。"
+
+msgid "Full"
+msgstr "Full"
+
+msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
+msgstr "在 FileBrowser Quantum Web 界面中浏览其文件的共享文件夹（以可读写方式挂载在 /srv）。额外的存储源只能通过编辑数据共享文件夹中的 config.yaml 添加。"
+
+msgid "Slim"
+msgstr "Slim"
+
+msgid "Source shared folder"
+msgstr "源共享文件夹"
+

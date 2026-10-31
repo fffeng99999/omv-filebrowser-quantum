@@ -1,0 +1,11 @@
+version: "1.0"
+type: navigation-item
+data:
+  path: "services.filebrowserquantum.settings"
+  text: _("Settings")
+  position: 10
+  icon: "tune"
+  url: "/services/filebrowserquantum/settings"
+  permissions:
+    role:
+      - admin

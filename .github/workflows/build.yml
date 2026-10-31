@@ -34,22 +34,25 @@ jobs:
             php -r 'json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR); echo "OK: ".$argv[1]."\n";' "$f"
           done
 
-      - name: Set up Python (yamllint)
+      - name: Set up Python (yamllint & test suites)
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Lint workbench YAML
+      - name: Lint workbench YAML and run test suites
         run: |
-          pip install yamllint
+          pip install yamllint pyyaml
           yamllint -d "{extends: relaxed, rules: {line-length: disable}}" \
             usr/share/openmediavault/workbench
+          python scripts/validate-workbench.py
+          python scripts/test_anti_recursion.py
 
       - name: Shell syntax check
         run: |
           for f in render-vars.sh debian/*.postinst debian/*.prerm debian/*.postrm \
                    usr/sbin/omv-filebrowserquantum-ctl \
-                   usr/share/openmediavault/confdb/create.d/*.sh; do
+                   usr/share/openmediavault/confdb/create.d/*.sh \
+                   usr/share/openmediavault/confdb/migrations.d/*.sh; do
             sh -n "$f" && echo "OK: $f"
           done
 

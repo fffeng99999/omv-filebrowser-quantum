@@ -13,4 +13,5 @@ execute_before_dh_installdeb:
 	chmod 0755 debian/openmediavault-filebrowser-quantum.prerm
 	chmod 0755 debian/openmediavault-filebrowser-quantum.postrm
 	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/sbin/omv-filebrowserquantum-ctl || true
-	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/share/openmediavault/confdb/create.d/*.sh
+	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/share/openmediavault/confdb/create.d/*.sh || true
+	chmod 0755 debian/openmediavault-filebrowser-quantum/usr/share/openmediavault/confdb/migrations.d/*.sh || true

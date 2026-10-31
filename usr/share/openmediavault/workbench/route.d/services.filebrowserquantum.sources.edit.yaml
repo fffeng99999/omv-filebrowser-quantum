@@ -1,0 +1,8 @@
+version: "1.0"
+type: route
+data:
+  url: "/services/filebrowserquantum/sources/edit/:uuid"
+  title: _("Edit source")
+  editing: true
+  notificationTitle: _("Updated source.")
+  component: omv-services-filebrowserquantum-storage-form-page

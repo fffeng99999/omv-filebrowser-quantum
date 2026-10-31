@@ -1,0 +1,6 @@
+version: "1.0"
+type: route
+data:
+  url: "/services/filebrowserquantum/sources"
+  title: _("Sources")
+  component: omv-services-filebrowserquantum-storage-datatable-page

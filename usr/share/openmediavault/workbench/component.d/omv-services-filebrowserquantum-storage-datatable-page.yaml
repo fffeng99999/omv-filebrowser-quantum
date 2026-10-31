@@ -1,0 +1,62 @@
+version: "1.0"
+type: component
+data:
+  name: omv-services-filebrowserquantum-storage-datatable-page
+  type: datatablePage
+  config:
+    stateId: 7b3e2189-9a2c-4f81-8e3b-5a1c0d4f6e8a
+    sorters:
+      - dir: asc
+        prop: path
+    rowId: uuid
+    rowEnumFmt: "{{ path }}"
+    selectionType: multi
+    limit: 0
+    store:
+      proxy:
+        service: FileBrowserQuantum
+        get:
+          method: getSources
+    columns:
+      - name: _("Shared folder")
+        prop: sharedFolderName
+        flexGrow: 2
+        sortable: true
+      - name: _("Container path")
+        prop: path
+        flexGrow: 2
+        sortable: true
+      - name: _("Display name")
+        prop: name
+        flexGrow: 2
+        sortable: true
+      - name: _("Read-only")
+        prop: readonly
+        flexGrow: 1
+        sortable: true
+        cellTemplateName: checkIcon
+      - name: _("Default enabled")
+        prop: defaultEnabled
+        flexGrow: 1
+        sortable: true
+        cellTemplateName: checkIcon
+    actions:
+      - template: create
+        execute:
+          type: url
+          url: "/services/filebrowserquantum/sources/create"
+      - template: edit
+        enabledConstraints:
+          minSelected: 1
+          maxSelected: 1
+        execute:
+          type: url
+          url: "/services/filebrowserquantum/sources/edit/{{ _selected[0].uuid }}"
+      - template: delete
+        execute:
+          type: request
+          request:
+            service: FileBrowserQuantum
+            method: deleteSource
+            params:
+              uuid: "{{ uuid }}"

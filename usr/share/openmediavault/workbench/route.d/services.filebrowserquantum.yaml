@@ -3,6 +3,4 @@ type: route
 data:
   url: "/services/filebrowserquantum"
   title: _("FileBrowser Quantum")
-  editing: true
-  notificationTitle: _("Updated FileBrowser Quantum settings.")
-  component: omv-services-filebrowserquantum-form-page
+  component: omv-services-filebrowserquantum-navigation-page

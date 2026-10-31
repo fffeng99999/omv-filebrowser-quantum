@@ -1,0 +1,64 @@
+version: "1.0"
+type: component
+data:
+  name: omv-services-filebrowserquantum-storage-form-page
+  type: formPage
+  config:
+    request:
+      service: FileBrowserQuantum
+      get:
+        method: getSource
+        params:
+          uuid: "{{ _routeParams.uuid }}"
+      post:
+        method: setSource
+    hints:
+      - type: info
+        text: _("A storage source mounts a shared folder into the FileBrowser Quantum container so its files can be browsed and managed in the web interface. You can expose multiple shared folders into the container.")
+        dismissible: true
+        stateId: a5f20819-32d1-4e78-9a4f-71239851de92
+      - type: warning
+        text: _("Do not select the Compose plugin shared folder itself, a system directory, the RustFS object store or the Docker data root. Such folders are rejected or masked automatically so FileBrowser Quantum cannot read their credentials or its own state.")
+        dismissible: true
+        stateId: d874c932-15f0-469b-9832-4217fa3910c8
+    fields:
+      - type: confObjUuid
+      - type: sharedFolderSelect
+        name: sharedfolderref
+        label: _("Shared folder")
+        hint: _("Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below).")
+        hasEmptyOption: true
+        hasCreateButton: true
+        value: ""
+        validators:
+          required: true
+      - type: textInput
+        name: path
+        label: _("Container path")
+        hint: _("Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically.")
+        value: "/srv"
+        validators:
+          pattern:
+            pattern: "^$|^/[A-Za-z0-9._/-]+$"
+            errorData: _("Must be an absolute path without a colon (e.g. /srv/photos).")
+      - type: textInput
+        name: name
+        label: _("Display name")
+        hint: _("Optional display name for this storage source. Leave empty to use the shared folder name.")
+        value: ""
+      - type: checkbox
+        name: readonly
+        label: _("Read-only")
+        hint: _("Mount the folder read-only (':ro'), preventing changes from within FileBrowser Quantum.")
+        value: false
+      - type: checkbox
+        name: defaultEnabled
+        label: _("Default enabled")
+        hint: _("Automatically enable this storage source for newly created users.")
+        value: true
+    buttons:
+      - template: cancel
+        execute:
+          type: url
+          url: "/services/filebrowserquantum/sources"
+      - template: submit

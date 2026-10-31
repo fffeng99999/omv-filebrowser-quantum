@@ -51,26 +51,32 @@ class FileBrowserQuantum extends \OMV\Engine\Module\ServiceAbstract
 		return [
 			"name" => $this->getName(),
 			"title" => gettext("FileBrowser Quantum"),
-			"enabled" => $object->get("enable"),
+			"enabled" => $object ? $object->get("enable") : false,
 			"running" => $running
 		];
 	}
 
 	public function bindListeners(\OMV\Engine\Notify\Dispatcher $dispatcher)
 	{
-		$dispatcher->addListener(
-			OMV_NOTIFY_MODIFY,
-			"org.openmediavault.conf.service.filebrowserquantum",
-			[$this, "setDirty"]
-		);
-		// The stack references its shared folders through the Compose
-		// plugin placeholder, so a modified shared folder must mark the
-		// service dirty when it is one of the referenced ones.
-		$dispatcher->addListener(
-			OMV_NOTIFY_MODIFY,
-			"org.openmediavault.conf.system.sharedfolder",
-			[$this, "onSharedFolder"]
-		);
+		// Listen to all three events (create, modify, delete) on settings
+		// and sources.
+		foreach ([OMV_NOTIFY_CREATE, OMV_NOTIFY_MODIFY, OMV_NOTIFY_DELETE] as $ev) {
+			$dispatcher->addListener(
+				$ev,
+				"org.openmediavault.conf.service.filebrowserquantum",
+				[$this, "setDirty"]
+			);
+			$dispatcher->addListener(
+				$ev,
+				"org.openmediavault.conf.service.filebrowserquantum.source",
+				[$this, "setDirty"]
+			);
+			$dispatcher->addListener(
+				$ev,
+				"org.openmediavault.conf.system.sharedfolder",
+				[$this, "onSharedFolder"]
+			);
+		}
 	}
 
 	public function onSharedFolder($object)
@@ -85,6 +91,13 @@ class FileBrowserQuantum extends \OMV\Engine\Module\ServiceAbstract
 				$this->setDirty();
 				return;
 			}
+		}
+		if ($db->exists("conf.service.filebrowserquantum.source", [
+			"operator" => "stringEquals",
+			"arg0" => "sharedfolderref",
+			"arg1" => $object["uuid"]
+		])) {
+			$this->setDirty();
 		}
 	}
 }

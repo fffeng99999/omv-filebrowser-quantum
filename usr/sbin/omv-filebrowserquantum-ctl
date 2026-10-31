@@ -11,49 +11,50 @@
 # any later version.
 #
 # Control the FileBrowser Quantum Docker container registered in the
-# openmediavault-compose plugin.
+# openmediavault-compose plugin with automatic tmpfs anti-recursion masking.
 #
 # Usage: omv-filebrowserquantum-ctl <cmd> [arg]
 #
 # The stack is owned by the Compose plugin and lives in the Compose
 # plugin shared folder:
 #   <compose shared folder>/filebrowserquantum/filebrowserquantum.yml
-#   <compose shared folder>/filebrowserquantum/filebrowserquantum.env
 # Every stack command is executed through /usr/sbin/omv-compose-run
-# (the helper of the Compose plugin), so the same --file/--env-file
-# arguments are used as from the Compose web UI.
+# (the helper of the Compose plugin), so the same --file arguments
+# are used as from the Compose web UI.
 #
 # Commands:
-#   up            start the stack (docker compose up -d)
-#   down          stop and remove the container (data is kept)
-#   restart       restart the stack
-#   upgrade       pull a newer image and recreate the stack
+#   up            start the stack after prepare_config and maskcheck
+#   down          stop and remove container (data is kept)
+#   restart       restart the stack after prepare_config and maskcheck
+#   upgrade       pull newer image, prepare_config, maskcheck, and recreate
 #   status        print "running" | "stopped" | "notinstalled"
-#   version       print the image tag of the running container
-#   latest <ch>   print the latest upstream release tag of the channel
-#                 (ch = stable | beta)
-#   logs          print the last 300 log lines
-#   showcompose   print the rendered <stack>.yml
-#   path          print the resolved stack directory (or nothing)
-#   unregister    remove the stack from the Compose plugin (used on purge)
+#   version       print running image tag
+#   latest <ch>   print latest upstream release tag (ch = stable | beta)
+#   health        print container health status
+#   dockerroot    print docker data-root directory
+#   logs          print last 300 log lines
+#   showcompose   print rendered filebrowserquantum.yml
+#   path          print stack directory
+#   maskcheck     verify anti-recursion invariants before up
+#   maskreport    print anti-recursion protection report
+#   unregister    remove stack from Compose plugin (on purge)
 
 set -u
 
 . /usr/share/openmediavault/scripts/helper-functions
 
-# Name of the stack in the Compose plugin; also the stack directory, the
-# base name of the generated files and the container name.
 STACK="filebrowserquantum"
 CONTAINER="filebrowserquantum"
+RESTRICTED_VOLUME_PREFIX="/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74"
 
 CMD="${1:-}"
 ARG="${2:-}"
 
 case "$CMD" in
-	up|down|restart|upgrade|status|version|latest|logs|showcompose|path|unregister)
+	up|down|restart|upgrade|status|version|latest|health|dockerroot|logs|showcompose|path|maskcheck|maskreport|unregister)
 	;;
 	*)
-		echo "Usage: omv-filebrowserquantum-ctl <up|down|restart|upgrade|status|version|latest|logs|showcompose|path|unregister> [arg]" >&2
+		echo "Usage: omv-filebrowserquantum-ctl <up|down|restart|upgrade|status|version|latest|health|dockerroot|logs|showcompose|path|maskcheck|maskreport|unregister> [arg]" >&2
 		exit 64
 	;;
 esac
@@ -62,35 +63,40 @@ esac
 # Helpers
 # ---------------------------------------------------------------------
 
-# Read a scalar property of a configuration object from the config
-# database. The value may be quoted (string) or not (boolean/number), so
-# the quotes are stripped and the result trimmed.
+# Read a scalar property from config database (jq preferred, python3 fallback)
 conf_value() {
-	omv-confdbadm read "$1" 2>/dev/null | tr -d '\n' \
-		| sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\([^,}]*\).*/\1/p" \
-		| tr -d '"' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+	_id="$1"
+	_key="$2"
+	if command -v jq >/dev/null 2>&1; then
+		omv-confdbadm read "$_id" 2>/dev/null | jq -r ".${_key} // empty"
+	else
+		omv-confdbadm read "$_id" 2>/dev/null | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    val = data.get('${_key}', '')
+    if val is not None:
+        print(val)
+except Exception:
+    pass
+" 2>/dev/null
+	fi
 }
 
-# Resolve a shared folder reference to its absolute path.
 ref_path() {
 	omv_get_sharedfolder_path "$1" 2>/dev/null || true
 }
 
-# Resolve the Compose plugin shared folder (the directory that holds all
-# stacks of the openmediavault-compose plugin).
 compose_sf_path() {
 	_ref="$(conf_value conf.service.compose sharedfolderref)"
 	[ -n "$_ref" ] && ref_path "$_ref"
 }
 
-# Directory of the stack inside the Compose shared folder.
 stack_dir() {
 	_sf="$(compose_sf_path)"
 	[ -n "$_sf" ] && echo "$_sf/$STACK"
 }
 
-# Run docker compose for the stack through the Compose plugin helper
-# (same --file/--env-file arguments as the Compose web UI).
 dc() {
 	if [ ! -x /usr/sbin/omv-compose-run ]; then
 		echo "ERROR: the openmediavault-compose plugin is not installed." >&2
@@ -99,43 +105,481 @@ dc() {
 	/usr/sbin/omv-compose-run "$STACK" "$@" 2>&1
 }
 
-# Create a minimal config.yaml in the data shared folder when it does not
-# exist yet; an existing file (possibly edited by the user) is never
-# overwritten. The source folder is mounted at the fixed container path
-# /srv, so the config does not have to change when the source shared
-# folder is moved. Both the Salt state and the Start button run through
-# this helper, so the file is created on whichever path comes first.
+docker_root() {
+	if command -v docker >/dev/null 2>&1; then
+		docker info --format '{{.DockerRootDir}}' 2>/dev/null || echo "/var/lib/docker"
+	else
+		echo "/var/lib/docker"
+	fi
+}
+
+# Declarative synchronization of config.yaml
 prepare_config() {
 	_ref="$(conf_value conf.service.filebrowserquantum dataRef)"
 	[ -n "$_ref" ] || return 0
 	_dir="$(ref_path "$_ref")"
 	[ -n "$_dir" ] && [ -d "$_dir" ] || return 0
-	[ -f "$_dir/config.yaml" ] && return 0
-	cat > "$_dir/config.yaml" <<'EOF'
-server:
-  cacheDir: /home/filebrowser/data/tmp
-  sources:
-    - path: /srv
-      config:
-        defaultEnabled: true
+
+	_puid="$(conf_value conf.service.filebrowserquantum puid)"
+	[ -n "$_puid" ] || _puid=1000
+	_pgid="$(conf_value conf.service.filebrowserquantum pgid)"
+	[ -n "$_pgid" ] || _pgid=100
+
+	# Ensure data dir and tmp cache directory exist with correct permissions for SQLite
+	chown "$_puid:$_pgid" "$_dir" 2>/dev/null || true
+	chmod 775 "$_dir" 2>/dev/null || true
+	if [ ! -d "$_dir/tmp" ]; then
+		mkdir -p "$_dir/tmp"
+	fi
+	chown -R "$_puid:$_pgid" "$_dir/tmp" 2>/dev/null || true
+	for _f in "$_dir/database.sqlite" "$_dir"/database.sqlite-*; do
+		if [ -e "$_f" ]; then
+			chown "$_puid:$_pgid" "$_f" 2>/dev/null || true
+			chmod 664 "$_f" 2>/dev/null || true
+		fi
+	done
+
+	# Run declarative config.yaml synchronization via Python
+	python3 - "$_dir" << 'EOF'
+import sys, os, json, subprocess
+
+data_dir = sys.argv[1] if len(sys.argv) > 1 else ""
+if not data_dir or not os.path.isdir(data_dir):
+    sys.exit(0)
+
+def get_conf(cid):
+    try:
+        res = subprocess.run(["omv-confdbadm", "read", cid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        if res.returncode == 0 and res.stdout.strip():
+            return json.loads(res.stdout)
+    except Exception:
+        pass
+    return None
+
+conf_main = get_conf("conf.service.filebrowserquantum") or {}
+conf_sources = get_conf("conf.service.filebrowserquantum.source") or []
+if isinstance(conf_sources, dict):
+    conf_sources = conf_sources.get("source", []) or []
+if not isinstance(conf_sources, list):
+    conf_sources = []
+
+base_url = conf_main.get("baseURL", "") or ""
+trust_proxy = bool(int(conf_main.get("trustProxyHeaders", 0) or 0))
+
+sources_list = []
+for s in sorted(conf_sources, key=lambda x: str(x.get("path", ""))):
+    p = s.get("path", "")
+    if not p:
+        continue
+    name = s.get("name", "")
+    if not name:
+        name = p.rstrip("/").split("/")[-1] or "Storage"
+    sources_list.append({
+        "path": p,
+        "name": name,
+        "config": {
+            "defaultEnabled": bool(int(s.get("defaultEnabled", 1) if isinstance(s.get("defaultEnabled"), (int, str)) and str(s.get("defaultEnabled")).isdigit() else (1 if s.get("defaultEnabled", True) else 0)))
+        }
+    })
+
+config_path = os.path.join(data_dir, "config.yaml")
+
+try:
+    import yaml
+    existing_cfg = {}
+    if os.path.isfile(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                loaded = yaml.safe_load(f)
+                if isinstance(loaded, dict):
+                    existing_cfg = loaded
+        except Exception:
+            existing_cfg = {}
+
+    if not isinstance(existing_cfg, dict):
+        existing_cfg = {}
+
+    http_cfg = existing_cfg.get("http")
+    if not isinstance(http_cfg, dict):
+        http_cfg = {}
+        existing_cfg["http"] = http_cfg
+
+    server_cfg = existing_cfg.get("server")
+    if not isinstance(server_cfg, dict):
+        server_cfg = {}
+        existing_cfg["server"] = server_cfg
+
+    if base_url:
+        http_cfg["baseURL"] = base_url
+    elif "baseURL" in http_cfg and not http_cfg["baseURL"]:
+        http_cfg["baseURL"] = ""
+    http_cfg["trustProxyHeaders"] = trust_proxy
+
+    # Clean up legacy/misplaced keys in server_cfg if present
+    server_cfg.pop("baseURL", None)
+    server_cfg.pop("trustProxyHeaders", None)
+
+    server_cfg["cacheDir"] = "/home/filebrowser/data/tmp"
+    server_cfg["sources"] = sources_list
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        yaml.dump(existing_cfg, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+except ImportError:
+    if not os.path.isfile(config_path):
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write("http:\n")
+            if base_url:
+                f.write(f"  baseURL: \"{base_url}\"\n")
+            f.write(f"  trustProxyHeaders: {'true' if trust_proxy else 'false'}\n")
+            f.write("server:\n")
+            f.write("  cacheDir: /home/filebrowser/data/tmp\n")
+            f.write("  sources:\n")
+            for s in sources_list:
+                f.write(f"    - path: {s['path']}\n")
+                f.write(f"      name: \"{s['name']}\"\n")
+                f.write("      config:\n")
+                f.write(f"        defaultEnabled: {'true' if s['config']['defaultEnabled'] else 'false'}\n")
 EOF
-	chmod 0644 "$_dir/config.yaml"
-	echo "Created a default config.yaml in $_dir."
+	chown "$_puid:$_pgid" "$_dir/config.yaml" 2>/dev/null || true
+	chmod 0664 "$_dir/config.yaml" 2>/dev/null || true
 }
+
+# ---------------------------------------------------------------------
+# Anti-recursion validation and reporting engine (Python helper)
+# ---------------------------------------------------------------------
+run_mask_tool() {
+	_action="$1"
+	_sdir="$(stack_dir)"
+	_yml=""
+	[ -n "$_sdir" ] && _yml="$_sdir/$STACK.yml"
+
+	python3 - "$_action" "$_yml" << 'EOF'
+import sys, os, json, subprocess, posixpath
+
+action = sys.argv[1] if len(sys.argv) > 1 else "maskcheck"
+yml_path = sys.argv[2] if len(sys.argv) > 2 else ""
+
+RESTRICTED_PREFIX = "/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74"
+
+def get_conf(cid):
+    try:
+        res = subprocess.run(["omv-confdbadm", "read", cid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        if res.returncode == 0 and res.stdout.strip():
+            return json.loads(res.stdout)
+    except Exception:
+        pass
+    return None
+
+def resolve_sf_path(ref, sf_list, mnt_list):
+    if not ref:
+        return ""
+    mntref = ""
+    reldir = ""
+    for sf in sf_list:
+        if sf.get("uuid") == ref:
+            mntref = sf.get("mntentref", "")
+            reldir = sf.get("reldirpath", "").strip("/")
+            break
+    if not mntref:
+        return ""
+    dirpath = ""
+    for m in mnt_list:
+        if m.get("uuid") == mntref:
+            dirpath = m.get("dir", "").rstrip("/")
+            break
+    if not dirpath:
+        return ""
+    full = os.path.join(dirpath, reldir)
+    try:
+        return os.path.realpath(full)
+    except Exception:
+        return full
+
+def is_strict_descendant(child, parent):
+    c = os.path.normpath(child).rstrip('/')
+    p = os.path.normpath(parent).rstrip('/')
+    return (c != p) and c.startswith(p + '/')
+
+def get_rel_path(child, parent):
+    c = os.path.normpath(child).rstrip('/')
+    p = os.path.normpath(parent).rstrip('/')
+    if c.startswith(p + '/'):
+        return c[len(p)+1:]
+    return ""
+
+def parse_vol(v):
+    v = v.strip().strip('"').strip("'")
+    if v.startswith("${{"):
+        idx = v.rfind("}}:")
+        if idx != -1:
+            rest = v[idx+3:]
+            parts = rest.split(":")
+            tgt = parts[0]
+            is_ro = (len(parts) > 1 and parts[1] == "ro")
+            return tgt, is_ro
+    parts = v.split(":")
+    if len(parts) >= 2:
+        tgt = parts[1]
+        is_ro = (len(parts) >= 3 and parts[2] == "ro")
+        return tgt, is_ro
+    return "", False
+
+conf_main = get_conf("conf.service.filebrowserquantum") or {}
+conf_sources = get_conf("conf.service.filebrowserquantum.source") or []
+if isinstance(conf_sources, dict):
+    conf_sources = conf_sources.get("source", []) or []
+if not isinstance(conf_sources, list):
+    conf_sources = []
+
+conf_sf = get_conf("conf.system.sharedfolder") or []
+if isinstance(conf_sf, dict): conf_sf = conf_sf.get("sharedfolder", []) or []
+conf_mnt = get_conf("conf.system.filesystem.mountpoint") or []
+if isinstance(conf_mnt, dict): conf_mnt = conf_mnt.get("mntent", []) or []
+
+conf_compose = get_conf("conf.service.compose") or {}
+conf_rustfs = get_conf("conf.service.rustfs") or {}
+
+data_ref = conf_main.get("dataRef", "")
+mask_protected = bool(int(conf_main.get("maskProtected", 1) or 0))
+
+data_host = resolve_sf_path(data_ref, conf_sf, conf_mnt)
+compose_sf_host = resolve_sf_path(conf_compose.get("sharedfolderref", ""), conf_sf, conf_mnt)
+rustfs_data_host = resolve_sf_path(conf_rustfs.get("dataRef", ""), conf_sf, conf_mnt)
+
+docker_root_host = ""
+try:
+    res = subprocess.run(["docker", "info", "--format", "{{.DockerRootDir}}"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if res.returncode == 0:
+        docker_root_host = res.stdout.strip()
+except Exception:
+    pass
+if not docker_root_host:
+    docker_root_host = "/var/lib/docker"
+
+# Red Line #9 Verification: Never touch restricted volume
+if data_host and data_host.startswith(RESTRICTED_PREFIX):
+    print(f"FATAL: data shared folder points to restricted volume {RESTRICTED_PREFIX}", file=sys.stderr)
+    sys.exit(1)
+
+storage_items = []
+for s in conf_sources:
+    ref = s.get("sharedfolderref", "")
+    h = resolve_sf_path(ref, conf_sf, conf_mnt)
+    if h and h.startswith(RESTRICTED_PREFIX):
+        print(f"FATAL: storage source shared folder points to restricted volume {RESTRICTED_PREFIX}", file=sys.stderr)
+        sys.exit(1)
+    cp = s.get("path", "")
+    ro = bool(int(s.get("readonly", 0) if isinstance(s.get("readonly"), (int, str)) and str(s.get("readonly")).isdigit() else (1 if s.get("readonly", False) else 0)))
+    name = s.get("name", "") or cp
+    storage_items.append({
+        "uuid": s.get("uuid", ""),
+        "ref": ref,
+        "host": h,
+        "path": cp,
+        "readonly": ro,
+        "name": name
+    })
+
+# Compute expected masks
+protected_roots = {}
+if data_host:
+    protected_roots["data"] = ("FileBrowser Data", data_host)
+if mask_protected:
+    if compose_sf_host:
+        protected_roots["compose"] = ("Compose SharedFolder", compose_sf_host)
+    if rustfs_data_host:
+        protected_roots["rustfs"] = ("RustFS ObjectStore", rustfs_data_host)
+    if docker_root_host:
+        protected_roots["docker"] = ("Docker DataRoot", docker_root_host)
+
+expected_masks = {}
+for s in sorted(storage_items, key=lambda x: x["path"]):
+    s_host = s["host"]
+    if not s_host or not os.path.isdir(s_host):
+        continue
+    c_path = s["path"].rstrip('/')
+    for p_key, (p_name, p_path) in sorted(protected_roots.items()):
+        if not os.path.isdir(p_path):
+            continue
+        if p_path == s_host:
+            print(f"ERROR: Shared folder '{s_host}' is identical to protected root '{p_name}'. Tmpfs masking requires descendant paths (R-3).", file=sys.stderr)
+            sys.exit(1)
+        if is_strict_descendant(p_path, s_host):
+            rel = get_rel_path(p_path, s_host)
+            if rel:
+                tgt = c_path + "/" + rel.lstrip('/')
+                expected_masks[tgt] = (p_name, p_path)
+
+expected_mask_paths = sorted(list(expected_masks.keys()))
+
+# Parse yml file if present
+yml_content = ""
+yml_volumes = []
+yml_tmpfs = []
+if yml_path and os.path.isfile(yml_path):
+    try:
+        with open(yml_path, "r", encoding="utf-8") as f:
+            yml_content = f.read()
+    except Exception:
+        pass
+
+if yml_content:
+    in_volumes = False
+    in_tmpfs = False
+    for line in yml_content.splitlines():
+        trimmed = line.strip()
+        if trimmed == "volumes:":
+            in_volumes = True
+            in_tmpfs = False
+            continue
+        elif trimmed == "tmpfs:":
+            in_tmpfs = True
+            in_volumes = False
+            continue
+        elif trimmed.startswith("services:") or (trimmed.endswith(":") and not trimmed.startswith("-")):
+            in_volumes = False
+            in_tmpfs = False
+
+        if in_volumes and trimmed.startswith("- "):
+            yml_volumes.append(trimmed[2:].strip())
+        elif in_tmpfs and trimmed.startswith("- "):
+            yml_tmpfs.append(trimmed[2:].strip())
+
+if action == "maskreport":
+    print("=" * 80)
+    print("FileBrowser Quantum Anti-Recursion Mask Report")
+    print("=" * 80)
+    print("Protected Roots:")
+    for k, (name, path) in sorted(protected_roots.items()):
+        exists = "exists" if os.path.isdir(path) else "not found on host"
+        print(f"  - {name:<24}: {path} ({exists})")
+    print("\nConfigured Storage Sources:")
+    if not storage_items:
+        print("  (none)")
+    for s in storage_items:
+        mode = "ro" if s["readonly"] else "rw (ATTENTION: writable)"
+        print(f"  - [{s['path']}] -> Host: {s['host']} ({mode})")
+    print("\nExpected Anti-Recursion tmpfs Masks:")
+    if not expected_mask_paths:
+        print("  (no protected paths exposed under configured sources)")
+    for m in expected_mask_paths:
+        p_name, p_path = expected_masks[m]
+        print(f"  - {m} (protects {p_name} at {p_path}, mode=0500, size=1MiB)")
+
+    print("\nRendered Stack tmpfs Mounts:")
+    if not yml_tmpfs:
+        print("  (none in rendered filebrowserquantum.yml)")
+    for yt in yml_tmpfs:
+        print(f"  - {yt}")
+    print("=" * 80)
+    sys.exit(0)
+
+# action == "maskcheck" (M1 - M7)
+if not yml_path or not os.path.isfile(yml_path):
+    print("ERROR: filebrowserquantum.yml not found. Register and save settings in FileBrowser Quantum plugin first.", file=sys.stderr)
+    sys.exit(1)
+
+# M1: Data mount exists and is writable
+has_data_mount = any(parse_vol(v)[0] == "/home/filebrowser/data" and not parse_vol(v)[1] for v in yml_volumes)
+if not has_data_mount:
+    print("ERROR [M1]: Missing writable data mount :/home/filebrowser/data in stack file.", file=sys.stderr)
+    sys.exit(1)
+
+# M2: Storage mounts match configured readonly state
+for v in yml_volumes:
+    tgt, is_ro = parse_vol(v)
+    if tgt == "/home/filebrowser/data":
+        continue
+    matched = [s for s in storage_items if s["path"] == tgt]
+    if matched and matched[0]["readonly"] and not is_ro:
+        print(f"ERROR [M2]: Storage mount {tgt} is configured readonly but not rendered :ro in stack.", file=sys.stderr)
+        sys.exit(1)
+
+# M3: No tmpfs target == any bind destination
+bind_destinations = set(parse_vol(v)[0] for v in yml_volumes if parse_vol(v)[0])
+tmpfs_targets = []
+for t in yml_tmpfs:
+    t_path = t.split(":")[0]
+    tmpfs_targets.append(t_path)
+    if t_path in bind_destinations:
+        print(f"ERROR [M3]: tmpfs target '{t_path}' is identical to a bind mount target (violates D4).", file=sys.stderr)
+        sys.exit(1)
+
+# M4: No bind destination in reserved prefixes (except data mount)
+reserved_prefixes = ["/app", "/etc", "/proc", "/sys", "/dev", "/var", "/usr", "/bin", "/sbin", "/lib", "/tmp", "/home"]
+for bd in bind_destinations:
+    if bd == "/home/filebrowser/data":
+        continue
+    if bd == "/" or any(bd == r or bd.startswith(r + "/") for r in reserved_prefixes):
+        print(f"ERROR [M4]: Bind destination '{bd}' violates reserved container paths.", file=sys.stderr)
+        sys.exit(1)
+
+# M5: tmpfs count <= 32, mode=0500 and size= present
+if len(yml_tmpfs) > 32:
+    print(f"ERROR [M5]: Too many tmpfs entries ({len(yml_tmpfs)} > 32).", file=sys.stderr)
+    sys.exit(1)
+for t in yml_tmpfs:
+    if "mode=0500" not in t or "size=" not in t:
+        print(f"ERROR [M5]: tmpfs entry '{t}' missing required mode=0500 or size parameter.", file=sys.stderr)
+        sys.exit(1)
+
+# M6: Layout drift check against expected masks
+rendered_tmpfs_paths = sorted(tmpfs_targets)
+missing = [m for m in expected_mask_paths if m not in rendered_tmpfs_paths]
+stale = [m for m in rendered_tmpfs_paths if m not in expected_mask_paths]
+
+if missing or stale:
+    print("ERROR: the storage layout changed since the stack was rendered.", file=sys.stderr)
+    for m in missing:
+        p_name, p_path = expected_masks[m]
+        print(f"  missing mask : {m}   (host: {p_path}, now exists)", file=sys.stderr)
+    for s in stale:
+        print(f"  stale mask   : {s}   (layout shifted or path removed)", file=sys.stderr)
+    print("Remedy: open Services -> FileBrowser Quantum -> Settings, click Save, then Apply.", file=sys.stderr)
+    print("The stack was NOT started (anti-recursion invariant violated).", file=sys.stderr)
+    sys.exit(1)
+
+# M7: Host path for all tmpfs masks still exists
+for m in rendered_tmpfs_paths:
+    if m in expected_masks:
+        _, p_path = expected_masks[m]
+        if not os.path.isdir(p_path):
+            print(f"ERROR [M7]: Mask target host path {p_path} does not exist.", file=sys.stderr)
+            sys.exit(1)
+
+sys.exit(0)
+EOF
+}
+
+# ---------------------------------------------------------------------
+# Command Dispatcher
+# ---------------------------------------------------------------------
 
 case "$CMD" in
 	up)
 		prepare_config
+		if ! run_mask_tool maskcheck; then
+			exit 1
+		fi
 		dc up -d --remove-orphans
 	;;
 	down)
 		dc down --remove-orphans
 	;;
 	restart)
+		prepare_config
+		if ! run_mask_tool maskcheck; then
+			exit 1
+		fi
 		dc restart
 	;;
 	upgrade)
 		dc pull --ignore-pull-failures || true
+		prepare_config
+		if ! run_mask_tool maskcheck; then
+			exit 1
+		fi
 		dc up -d --remove-orphans
 	;;
 	status)
@@ -144,16 +588,16 @@ case "$CMD" in
 			echo "notinstalled"
 			exit 0
 		fi
-		running=$(dc ps --status running -q 2>/dev/null | wc -l)
-		if [ "$running" -ge 1 ]; then
-			echo "running"
-		else
-			echo "stopped"
+		if command -v docker >/dev/null 2>&1; then
+			_state="$(docker inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || true)"
+			if [ "$_state" = "running" ]; then
+				echo "running"
+				exit 0
+			fi
 		fi
+		echo "stopped"
 	;;
 	version)
-		# Image tag of the running container (the container is named
-		# after the stack). Read-only, no service is started.
 		if ! command -v docker >/dev/null 2>&1; then
 			exit 0
 		fi
@@ -162,17 +606,6 @@ case "$CMD" in
 		echo "${_img##*:}"
 	;;
 	latest)
-		# Latest upstream release tag of the requested channel. The
-		# channel is matched on the tag suffix (v2.0.10-beta,
-		# v1.5.8-stable): upstream does not set the GitHub 'prerelease'
-		# flag on its -beta/-preview tags, so that flag must not be used.
-		#
-		# Primary source is the GitHub releases Atom feed (github.com):
-		# the anonymous REST API is rate limited per IP and then fails,
-		# whereas the feed does not. Some networks cannot reach
-		# github.com while api.github.com works (and vice versa), so the
-		# rate limited REST API is only used as a fallback when the feed
-		# produced nothing. Both sources list the releases newest-first.
 		_ch="${ARG:-stable}"
 		_tag=$(curl -fsS --max-time 6 \
 			https://github.com/gtsteffaniak/filebrowser/releases.atom 2>/dev/null \
@@ -190,6 +623,17 @@ case "$CMD" in
 		fi
 		[ -n "$_tag" ] && echo "$_tag"
 	;;
+	health)
+		if command -v docker >/dev/null 2>&1; then
+			_h="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$CONTAINER" 2>/dev/null || true)"
+			[ -n "$_h" ] && echo "$_h" || echo "unknown"
+		else
+			echo "unknown"
+		fi
+	;;
+	dockerroot)
+		docker_root
+	;;
 	logs)
 		dc logs --tail 300
 	;;
@@ -199,11 +643,13 @@ case "$CMD" in
 	path)
 		stack_dir
 	;;
+	maskcheck)
+		run_mask_tool maskcheck
+	;;
+	maskreport)
+		run_mask_tool maskreport
+	;;
 	unregister)
-		# Remove the stack from the Compose plugin (used when the plugin
-		# is removed). The data and source shared folders are not
-		# touched; only the container and the generated stack files are
-		# removed by the Compose plugin.
 		if [ ! -x /usr/sbin/omv-rpc ]; then
 			echo "omv-rpc not available - skipping."
 			exit 0

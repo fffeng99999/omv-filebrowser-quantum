@@ -1,0 +1,291 @@
+version: "1.0"
+type: component
+data:
+  name: omv-services-filebrowserquantum-settings-form-page
+  type: formPage
+  config:
+    request:
+      service: FileBrowserQuantum
+      get:
+        method: get
+        transform:
+          statusText: "{{ statusText | translate }}"
+          maskPreview: "{{ maskPreview | translate }}"
+      post:
+        method: set
+    hints:
+      - type: info
+        text: _("FileBrowser Quantum is a modern, high-performance web file manager. The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data shared folder, configure storage sources on the Sources tab, save, then click Apply and use the buttons below to deploy and manage the container.")
+        dismissible: true
+        stateId: 7c4a1e28-5b93-4d61-9f0a-2e8b6d31c47a
+      - type: info
+        text: _("This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately.")
+        dismissible: true
+        stateId: 3e9b7d54-1c62-4a8f-b0d3-6f5a2c9e7148
+    fields:
+      - type: divider
+        title: _("Status")
+      - type: textInput
+        name: statusText
+        label: _("Service status")
+        submitValue: false
+        readonly: true
+      - type: textInput
+        name: runningVersion
+        label: _("Running version")
+        submitValue: false
+        readonly: true
+      - type: textInput
+        name: latestVersion
+        label: _("Latest version")
+        submitValue: false
+        readonly: true
+      - type: checkbox
+        name: updateAvailable
+        label: _("Update available")
+        submitValue: false
+        readonly: true
+      - type: textInput
+        name: sourcesCount
+        label: _("Configured sources")
+        hint: _("Number of storage sources configured on the Sources tab.")
+        submitValue: false
+        readonly: true
+
+      - type: divider
+        title: _("Service")
+      - type: checkbox
+        name: enable
+        label: _("Enabled")
+        hint: _("Automatically manage the container from OMV. On Apply the container is (re)created; disabling the service removes the container on Apply (the data folder and storage sources are kept). The data folder and at least one storage source must be configured first.")
+        value: false
+      - type: numberInput
+        name: port
+        label: _("Web port")
+        hint: _("Port of the FileBrowser Quantum web interface on the host (the container listens on port 80 internally).")
+        value: 8085
+        validators:
+          min: 1
+          max: 65535
+          patternType: port
+          required: true
+      - type: textInput
+        name: version
+        label: _("Image tag")
+        hint: _("Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button.")
+        value: "2.0.10-beta"
+        validators:
+          required: true
+          pattern:
+            pattern: "^(?!v?1[\\.\\-]).+$"
+            errorData: _("FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta).")
+      - type: select
+        name: imageVariant
+        label: _("Image variant")
+        hint: _("'Full' includes FFmpeg and document previews (larger image); 'Slim' is the core service only (much smaller, no media/document previews).")
+        value: "full"
+        store:
+          data:
+            - - "full"
+              - _("Full (media and document previews)")
+            - - "slim"
+              - _("Slim (core service only)")
+
+      - type: divider
+        title: _("Storage")
+      - type: textInput
+        name: composeFile
+        label: _("Stack file (Compose plugin)")
+        hint: _("Stack file location. The stack files are rendered by the Compose plugin into its shared folder and are managed there, so this path cannot be changed here. Set the folder in Services -> Compose -> Settings.")
+        submitValue: false
+        readonly: true
+      - type: sharedFolderSelect
+        name: dataRef
+        label: _("Data shared folder")
+        hint: _("Shared folder for the FileBrowser Quantum configuration, its SQLite database and the cache (mounted at /home/filebrowser/data). Put it on the data array. Changing it later starts from an empty configuration in the new folder - the previous data is not deleted.")
+        hasEmptyOption: true
+        hasCreateButton: true
+        value: ""
+        validators:
+          requiredIf:
+            operator: truthy
+            arg0: enable
+      - type: numberInput
+        name: puid
+        label: _("User ID (PUID)")
+        hint: _("User ID for the container process and files written to shared folders.")
+        value: 1000
+        validators:
+          min: 0
+          max: 65535
+          required: true
+      - type: numberInput
+        name: pgid
+        label: _("Group ID (PGID)")
+        hint: _("Group ID for the container process and files written to shared folders.")
+        value: 100
+        validators:
+          min: 0
+          max: 65535
+          required: true
+
+      - type: divider
+        title: _("Network")
+      - type: textInput
+        name: baseURL
+        label: _("Base URL")
+        hint: _("Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain.")
+        value: ""
+      - type: textInput
+        name: appUrl
+        label: _("Application URL")
+        hint: _("Optional public URL used for external links (e.g. https://files.example.com).")
+        value: ""
+      - type: checkbox
+        name: trustProxyHeaders
+        label: _("Trust proxy headers")
+        hint: _("Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection.")
+        value: false
+      - type: select
+        name: authMethod
+        label: _("Authentication method")
+        hint: _("Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication).")
+        value: "password"
+        store:
+          data:
+            - - "password"
+              - _("Password (internal user database)")
+            - - "noauth"
+              - _("No authentication (public access)")
+            - - "proxy"
+              - _("Proxy header authentication")
+
+      - type: divider
+        title: _("Security and advanced")
+      - type: checkbox
+        name: maskProtected
+        label: _("Auto-mask protected directories")
+        hint: _("Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks.")
+        value: true
+      - type: textInput
+        name: maskCount
+        label: _("Masked path count")
+        hint: _("Number of tmpfs masks currently configured in the rendered stack file.")
+        submitValue: false
+        readonly: true
+      - type: textarea
+        name: maskPreview
+        label: _("Masked container paths")
+        hint: _("The container paths currently masked in the rendered stack file. Empty when nothing needs masking.")
+        rows: 4
+        monospace: true
+        submitValue: false
+        readonly: true
+      - type: textarea
+        name: extraOptions
+        label: _("Extra environment options")
+        hint: _("Additional environment variables passed to the container, one per line in KEY=VALUE format. Lines starting with # are ignored.")
+        rows: 4
+        monospace: true
+        value: ""
+
+    buttons:
+      - text: _("Start")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("FileBrowser Quantum deploy/start output")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: start
+      - text: _("Stop")
+        confirmationDialogConfig:
+          template: confirmation
+          message: _("Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept.")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("FileBrowser Quantum stop output")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: stop
+      - text: _("Restart")
+        confirmationDialogConfig:
+          template: confirmation
+          message: _("Do you really want to restart the FileBrowser Quantum container?")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("FileBrowser Quantum restart output")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: restart
+      - text: _("Upgrade")
+        confirmationDialogConfig:
+          template: confirmation
+          message: _("Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade.")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("FileBrowser Quantum upgrade output")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: upgrade
+      - text: _("Check for latest version")
+        execute:
+          type: request
+          request:
+            service: FileBrowserQuantum
+            method: getLatestVersion
+            successNotification: _("Queried the latest upstream version. Save and apply, or use the Upgrade button.")
+            reloadDataOnSuccess: true
+      - text: _("View logs")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("FileBrowser Quantum logs")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: getLog
+      - text: _("View compose file")
+        execute:
+          type: taskDialog
+          taskDialog:
+            config:
+              title: _("Rendered docker-compose.yml")
+              width: "70%"
+              startOnInit: true
+              request:
+                service: FileBrowserQuantum
+                method: getShowConfig
+      - text: _("Open FileBrowser Quantum")
+        execute:
+          type: url
+          url: >-
+            /externalRedirect/{{
+              (appUrl if appUrl else (
+                (location() | get('protocol')) + '//' +
+                (location() | get('hostname')) + ':' + port +
+                (baseURL if baseURL else '')
+              )) | encodeuricomponent
+            }}
+      - template: cancel
+        execute:
+          type: url
+          url: "/services/filebrowserquantum"
+      - template: submit

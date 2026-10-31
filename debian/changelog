@@ -1,3 +1,25 @@
+openmediavault-filebrowser-quantum (8.1.0) stable; urgency=medium
+
+  * Architectural redesign and major release:
+    - Multi-source decoupled architecture: support configuring arbitrary
+      storage sources with independent container paths, display names,
+      read-only flags and default-enabled toggles.
+    - Decoupled Workbench UI: navigation container with Settings form page
+      and Storage Sources DataTable, plus create and edit form pages.
+    - Protocol-adaptive Web UI redirect with reverse proxy baseURL and appUrl
+      support, avoiding mixed content issues.
+    - Enhanced anti-recursion protection: R-1 through R-7 hard rejection
+      rules, production restricted volume isolation, and automated
+      read-only tmpfs masking for Compose, Docker data-root and RustFS.
+    - Improved deployment lifecycle: Salt state orphan container cleanup
+      and test.configurable_test_state fallback.
+    - Non-blocking, zero-network get() RPC with cached version detection
+      and dedicated getLatestVersion trigger.
+    - Complete gettext internationalization with 100% zh_CN and zh_TW
+      translations.
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sat, 31 Oct 2026 22:00:00 +0800
+
 openmediavault-filebrowser-quantum (8.0.1) stable; urgency=medium
 
   * Initial release: FileBrowser Quantum management plugin for

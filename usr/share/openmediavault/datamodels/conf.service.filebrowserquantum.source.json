@@ -1,0 +1,46 @@
+{
+	"type": "config",
+	"id": "conf.service.filebrowserquantum.source",
+	"title": "FileBrowser Quantum source",
+	"queryinfo": {
+		"xpath": ".//services/filebrowserquantum/sources/source",
+		"iterable": true,
+		"idproperty": "uuid"
+	},
+	"properties": {
+		"uuid": {
+			"type": "string",
+			"format": "uuidv4"
+		},
+		"sharedfolderref": {
+			"type": "string",
+			"oneOf": [
+				{
+					"type": "string",
+					"format": "uuidv4"
+				},
+				{
+					"type": "string",
+					"maxLength": 0
+				}
+			],
+			"default": ""
+		},
+		"path": {
+			"type": "string",
+			"default": "/srv"
+		},
+		"name": {
+			"type": "string",
+			"default": ""
+		},
+		"readonly": {
+			"type": "boolean",
+			"default": false
+		},
+		"defaultEnabled": {
+			"type": "boolean",
+			"default": true
+		}
+	}
+}
