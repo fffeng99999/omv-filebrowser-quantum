@@ -35,12 +35,14 @@ data:
       - type: textInput
         name: path
         label: _("Container path")
-        hint: _("Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically.")
-        value: "/srv"
+        hint: _("Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving.")
+        placeholder: "/srv/<shared folder name>"
+        value: ""
+        hasClearButton: true
         validators:
           pattern:
-            pattern: "^$|^/[A-Za-z0-9._/-]+$"
-            errorData: _("Must be an absolute path without a colon (e.g. /srv/photos).")
+            pattern: "^$|^/[^:\\s\"'\\\\]+$"
+            errorData: _("Must be an absolute path without a colon or whitespace (e.g. /srv/photos).")
       - type: textInput
         name: name
         label: _("Display name")

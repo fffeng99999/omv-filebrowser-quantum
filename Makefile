@@ -16,7 +16,7 @@
 # Workbench assets.
 
 OMV_PACKAGE    := openmediavault-filebrowser-quantum
-OMV_VERSION    := 8.1.0
+OMV_VERSION    := 8.1.1
 OMV_PROJECT_DIR := $(CURDIR)
 OMV_WORKBENCH_DIR := $(OMV_PROJECT_DIR)/usr/share/openmediavault/workbench
 OMV_LOCALE_DIR   := $(OMV_PROJECT_DIR)/usr/share/openmediavault/locale
@@ -76,6 +76,7 @@ locale:
 # Unit tests
 test:
 	@python3 "$(OMV_PROJECT_DIR)/scripts/test_anti_recursion.py"
+	@if command -v php >/dev/null 2>&1; then php "$(OMV_PROJECT_DIR)/scripts/test_source_path.php"; else echo "php not found; skipping scripts/test_source_path.php"; fi
 
 # Host-independent checks: every manifest parses, component names are
 # unique, routes reference existing components, and every _() msgid in

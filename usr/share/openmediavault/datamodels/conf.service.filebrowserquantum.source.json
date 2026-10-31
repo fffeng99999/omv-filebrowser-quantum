@@ -28,7 +28,7 @@
 		},
 		"path": {
 			"type": "string",
-			"default": "/srv"
+			"default": ""
 		},
 		"name": {
 			"type": "string",

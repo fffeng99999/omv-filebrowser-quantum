@@ -20,8 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 WB = ROOT / "usr" / "share" / "openmediavault" / "workbench"
 LOC = ROOT / "usr" / "share" / "openmediavault" / "locale"
 PKG = "openmediavault-filebrowser-quantum"
-VER = "8.1.0"
-DATE = "2026-10-31 22:30+0800"
+VER = "8.1.1"
+DATE = "2026-11-01 02:30+0800"
 
 GET = re.compile(r'_\(\s*(["\'])(.*?)\1\s*\)', re.DOTALL)
 
@@ -228,13 +228,13 @@ T: dict[str, tuple[str, str]] = {
         "暴露给 FileBrowser Quantum 的共享文件夹（绑定到下方的容器路径）。",
         "公開給 FileBrowser Quantum 的共享資料夾（繫結到下方的容器路徑）。",
     ),
-    "Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically.": (
-        "容器内的绝对路径（例如 /srv/photos）。留空则自动从共享文件夹名称生成。",
-        "容器內的絕對路徑（例如 /srv/photos）。留空則自動從共享資料夾名稱產生。",
+    "Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving.": (
+        "容器内的绝对路径。留空则在保存时根据所选共享文件夹自动生成 '/srv/<共享文件夹名>'。",
+        "容器內的絕對路徑。留空則在儲存時根據所選共享資料夾自動產生 '/srv/<共享資料夾名>'。",
     ),
-    "Must be an absolute path without a colon (e.g. /srv/photos).": (
-        "必须是不含冒号的绝对路径（例如 /srv/photos）。",
-        "必須是不含冒號的絕對路徑（例如 /srv/photos）。",
+    "Must be an absolute path without a colon or whitespace (e.g. /srv/photos).": (
+        "必须是不含冒号或空白的绝对路径（例如 /srv/photos）。",
+        "必須是不含冒號或空白的絕對路徑（例如 /srv/photos）。",
     ),
     "Optional display name for this storage source. Leave empty to use the shared folder name.": (
         "该存储源的可选显示名称。留空则使用共享文件夹名称。",

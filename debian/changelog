@@ -1,3 +1,24 @@
+openmediavault-filebrowser-quantum (8.1.1) stable; urgency=medium
+
+  * Fix automatic container path generation for storage sources:
+    - The "Container path" field no longer defaults to /srv, which
+      prevented the documented auto-derivation from ever running and made
+      every new source mount at /srv (colliding with the legacy mount).
+      The field is now empty by default; when it is left empty the path
+      is generated from the selected shared folder as /srv/<name>.
+    - The derived path is sanitized for Docker/Compose: whitespace and
+      path-unsafe characters become underscores, Unicode letters and
+      digits are preserved, and excessively long names are shortened
+      with a stable hash suffix.
+    - The display name now defaults to the shared folder name instead of
+      being stored empty.
+    - Container path validation now accepts Unicode paths, normalizes
+      duplicate and trailing slashes and rejects '.'/'..' segments.
+    - The container path pattern and hint in the Workbench form were
+      updated accordingly.
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sun, 01 Nov 2026 02:30:00 +0800
+
 openmediavault-filebrowser-quantum (8.1.0) stable; urgency=medium
 
   * Architectural redesign and major release:

@@ -27,6 +27,8 @@ jobs:
           for f in $(find usr/share/openmediavault/engined -name '*.inc'); do
             php -l "$f"
           done
+          php -l scripts/test_source_path.php
+          php scripts/test_source_path.php
 
       - name: Validate JSON datamodels
         run: |

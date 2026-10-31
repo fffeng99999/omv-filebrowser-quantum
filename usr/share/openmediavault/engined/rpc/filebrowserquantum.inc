@@ -343,6 +343,59 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	}
 
 	/**
+	 * Normalize a container path by trimming whitespace, collapsing
+	 * duplicate slashes and removing a trailing slash. The root path is
+	 * kept as is. An empty string is returned unchanged.
+	 */
+	private function normalizeContainerPath(string $path): string
+	{
+		$path = trim($path);
+		if ("" === $path) {
+			return "";
+		}
+		$normalized = preg_replace('#/+#', '/', $path);
+		if (!is_string($normalized)) {
+			return "";
+		}
+		if (strlen($normalized) > 1) {
+			$normalized = rtrim($normalized, "/");
+		}
+		return $normalized;
+	}
+
+	/**
+	 * Derive the container path '/srv/<shared folder name>' from the
+	 * name of the selected shared folder. Characters that are not
+	 * allowed in a container path are replaced with an underscore;
+	 * Unicode letters and digits are preserved so that localized shared
+	 * folder names stay readable. If the sanitized name is empty a
+	 * unique segment derived from the shared folder UUID is used.
+	 */
+	private function deriveContainerPath(string $sfName, string $sfRef): string
+	{
+		$name = trim($sfName);
+		$segment = "";
+		if ("" !== $name) {
+			// Keep Unicode letters and digits, replace everything else.
+			$sanitized = preg_replace('/[^\p{L}\p{N}._-]+/u', '_', $name);
+			if (!is_string($sanitized)) {
+				// Fallback for invalid UTF-8 input.
+				$sanitized = preg_replace('/[^A-Za-z0-9._-]+/', '_', $name);
+			}
+			$segment = trim((string)preg_replace('/_+/', '_', (string)$sanitized), "._-");
+		}
+		if ("" === $segment) {
+			$hex = (string)preg_replace('/[^0-9a-f]/i', '', $sfRef);
+			$segment = "share-" . substr($hex, 0, 8);
+		}
+		// Keep the derived path well below the 200 byte limit.
+		if (preg_match('/^(.{48})(.+)$/us', $segment, $matches)) {
+			$segment = rtrim($matches[1], "._-") . "-" . substr(sha1($name . $sfRef), 0, 8);
+		}
+		return "/srv/" . $segment;
+	}
+
+	/**
 	 * Validate container path format and reserved prefixes (R-6).
 	 */
 	private function validateContainerPath(string $path): void
@@ -356,11 +409,19 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 				$path
 			));
 		}
-		if (!preg_match('#^/[A-Za-z0-9._/-]+$#', $path)) {
+		if (!preg_match('#^/[\p{L}\p{N}._/-]+$#u', $path)) {
 			throw new \OMV\Exception(sprintf(
-				"The container path '%s' contains invalid characters.",
+				"The container path '%s' contains invalid characters. Only letters, digits, '.', '_', '-' and '/' are allowed.",
 				$path
 			));
+		}
+		foreach (explode("/", trim($path, "/")) as $segment) {
+			if ("." === $segment || ".." === $segment) {
+				throw new \OMV\Exception(sprintf(
+					"The container path '%s' must not contain '.' or '..' segments.",
+					$path
+				));
+			}
 		}
 		$trimmed = rtrim($path, "/");
 		foreach (self::RESERVED_PREFIXES as $res) {
@@ -933,14 +994,6 @@ YAML;
 			throw new \OMV\Exception("The selected shared folder could not be resolved.");
 		}
 
-		$cPath = trim((string)($params["path"] ?? ""));
-		if (empty($cPath)) {
-			$cPath = "/srv/" . preg_replace('/[^A-Za-z0-9._-]/', '_', $sfName);
-			$params["path"] = $cPath;
-		}
-
-		$this->validateContainerPath($cPath);
-
 		$existingSources = $this->getAllSources();
 		$uuid = trim((string)($params["uuid"] ?? ""));
 		$isNew = empty($uuid) || $uuid === "undefined" || !\OMV\Uuid::isUuid4($uuid);
@@ -948,9 +1001,42 @@ YAML;
 			unset($params["uuid"]);
 		}
 
+		$cPath = $this->normalizeContainerPath((string)($params["path"] ?? ""));
+		if ("" === $cPath) {
+			$cPath = $this->deriveContainerPath($sfName, $ref);
+		} elseif (!$isNew) {
+			// If the stored path was auto-derived from the previous shared
+			// folder name, follow the folder when it is replaced.
+			foreach ($existingSources as $es) {
+				if (($es["uuid"] ?? "") !== $uuid) {
+					continue;
+				}
+				$oldRef = (string)($es["sharedfolderref"] ?? "");
+				if ("" !== $oldRef && $oldRef !== $ref) {
+					$oldName = $this->sharedFolderName($context, $oldRef);
+					if ("" !== $oldName) {
+						$oldDerived = $this->normalizeContainerPath(
+							$this->deriveContainerPath($oldName, $oldRef)
+						);
+						if ($cPath === $oldDerived) {
+							$cPath = $this->deriveContainerPath($sfName, $ref);
+						}
+					}
+				}
+				break;
+			}
+		}
+		$params["path"] = $cPath;
+		$this->validateContainerPath($cPath);
+
+		// Default the display name to the shared folder name so the
+		// source list is meaningful without further user input.
+		$displayName = trim((string)($params["name"] ?? ""));
+		$params["name"] = ("" === $displayName) ? trim($sfName) : $displayName;
+
 		foreach ($existingSources as $es) {
 			if ($isNew || ($es["uuid"] ?? "") !== $uuid) {
-				if (($es["path"] ?? "") === $cPath) {
+				if ($this->normalizeContainerPath((string)($es["path"] ?? "")) === $cPath) {
 					throw new \OMV\Exception("The container path is already used by another source.");
 				}
 			}

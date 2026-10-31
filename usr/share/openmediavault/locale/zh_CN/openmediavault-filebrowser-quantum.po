@@ -3,10 +3,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.0\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 22:30+0800\n"
-"PO-Revision-Date: 2026-10-31 22:30+0800\n"
+"POT-Creation-Date: 2026-11-01 02:30+0800\n"
+"PO-Revision-Date: 2026-11-01 02:30+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: Chinese (Simplified) <openmediavault-plugins@googlegroups.com>\n"
 "Language: zh_CN\n"
@@ -257,11 +257,11 @@ msgstr "请勿选择 Compose 插件共享文件夹本身、系统目录、RustFS
 msgid "Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below)."
 msgstr "暴露给 FileBrowser Quantum 的共享文件夹（绑定到下方的容器路径）。"
 
-msgid "Absolute path inside the container (e.g. /srv/photos). Leave empty to derive it from the shared folder name automatically."
-msgstr "容器内的绝对路径（例如 /srv/photos）。留空则自动从共享文件夹名称生成。"
+msgid "Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving."
+msgstr "容器内的绝对路径。留空则在保存时根据所选共享文件夹自动生成 '/srv/<共享文件夹名>'。"
 
-msgid "Must be an absolute path without a colon (e.g. /srv/photos)."
-msgstr "必须是不含冒号的绝对路径（例如 /srv/photos）。"
+msgid "Must be an absolute path without a colon or whitespace (e.g. /srv/photos)."
+msgstr "必须是不含冒号或空白的绝对路径（例如 /srv/photos）。"
 
 msgid "Optional display name for this storage source. Leave empty to use the shared folder name."
 msgstr "该存储源的可选显示名称。留空则使用共享文件夹名称。"
