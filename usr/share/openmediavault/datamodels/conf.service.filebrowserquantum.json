@@ -78,6 +78,10 @@
 			],
 			"default": "password"
 		},
+		"authProxyHeader": {
+			"type": "string",
+			"default": "X-Forwarded-User"
+		},
 		"puid": {
 			"type": "integer",
 			"minimum": 0,
@@ -126,7 +130,7 @@
 							},
 							"path": {
 								"type": "string",
-								"default": "/srv"
+								"default": ""
 							},
 							"name": {
 								"type": "string",

@@ -10,6 +10,7 @@ data:
         method: get
         transform:
           statusText: "{{ statusText | translate }}"
+          healthText: "{{ healthText | translate }}"
           maskPreview: "{{ maskPreview | translate }}"
       post:
         method: set
@@ -22,12 +23,22 @@ data:
         text: _("This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately.")
         dismissible: true
         stateId: 3e9b7d54-1c62-4a8f-b0d3-6f5a2c9e7148
+      - type: warning
+        text: _("The buttons act on the saved configuration. After a task finishes, click 'Refresh status' to reload the service state, the running version and the mask preview; a deployment that Docker reports as unhealthy makes Apply changes fail.")
+        dismissible: true
+        stateId: 5d0f7c31-8a4b-4e26-9c17-2f6b8d0a3e95
     fields:
       - type: divider
         title: _("Status")
       - type: textInput
         name: statusText
         label: _("Service status")
+        submitValue: false
+        readonly: true
+      - type: textInput
+        name: healthText
+        label: _("Container health")
+        hint: _("Health reported by Docker for the running container. 'No health check' means the image does not define one.")
         submitValue: false
         readonly: true
       - type: textInput
@@ -72,12 +83,12 @@ data:
       - type: textInput
         name: version
         label: _("Image tag")
-        hint: _("Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button.")
+        hint: _("Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. The Upgrade button advances a pinned tag to the latest upstream release before it pulls the image.")
         value: "2.0.10-beta"
         validators:
           required: true
           pattern:
-            pattern: "^(?!v?1[\\.\\-]).+$"
+            pattern: "^(?!v?1[\\\\.\\\\-]).+$"
             errorData: _("FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta).")
       - type: select
         name: imageVariant
@@ -109,11 +120,12 @@ data:
         validators:
           requiredIf:
             operator: truthy
-            arg0: enable
+            arg0:
+              prop: enable
       - type: numberInput
         name: puid
         label: _("User ID (PUID)")
-        hint: _("User ID for the container process and files written to shared folders.")
+        hint: _("User ID for the container process and files written to shared folders. PUID 0 runs the container as root, which is the only option for folders that are owned by root and not readable for others (e.g. a root:root 700 volume root); PUID/PGID 1000:100 is the default for shared folders created by OMV. POSIX ACLs can grant access as well - the permission check below shows what the configured ID can read right now.")
         value: 1000
         validators:
           min: 0
@@ -122,34 +134,46 @@ data:
       - type: numberInput
         name: pgid
         label: _("Group ID (PGID)")
-        hint: _("Group ID for the container process and files written to shared folders.")
+        hint: _("Group ID for the container process and files written to shared folders. Use 100 (the OMV 'users' group) together with PUID 1000, or 0 together with PUID 0 for root semantics.")
         value: 100
         validators:
           min: 0
           max: 65535
           required: true
+      - type: textarea
+        name: permissionsReport
+        label: _("Permission check")
+        hint: _("Read access of the configured PUID/PGID to the data folder and the storage sources, evaluated when the page loads. Advisory only - POSIX ACLs also grant access and files created later can have different owners, so a 'NOT readable' entry is not a hard error. Without read access FileBrowser Quantum returns HTTP 403 in the web interface.")
+        rows: 4
+        monospace: true
+        submitValue: false
+        readonly: true
 
       - type: divider
         title: _("Network")
       - type: textInput
         name: baseURL
         label: _("Base URL")
-        hint: _("Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain.")
+        hint: _("Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files), written to http.baseURL of the upstream config.yaml. Leave empty to serve at the root - clearing the field removes a previously configured prefix.")
         value: ""
       - type: textInput
         name: appUrl
         label: _("Application URL")
-        hint: _("Optional public URL used for external links (e.g. https://files.example.com).")
+        hint: _("Optional public URL used for external links (e.g. https://files.example.com), written to http.externalUrl of the upstream config.yaml. Upstream appends the base URL on its own, so a sub path must not be repeated here.")
         value: ""
+        validators:
+          pattern:
+            pattern: "^$|^https?://[^\\s]+$"
+            errorData: _("Must be empty or an absolute http(s) URL without whitespace (e.g. https://files.example.com).")
       - type: checkbox
         name: trustProxyHeaders
         label: _("Trust proxy headers")
-        hint: _("Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection.")
+        hint: _("Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection (http.trustProxyHeaders).")
         value: false
       - type: select
         name: authMethod
         label: _("Authentication method")
-        hint: _("Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication).")
+        hint: _("Authentication method written to auth.methods of the upstream config.yaml - password (internal user database), noauth (disable authentication completely) or proxy (HTTP header authentication). Only these keys are read by upstream 2.x - no environment variable is involved.")
         value: "password"
         store:
           data:
@@ -159,13 +183,22 @@ data:
               - _("No authentication (public access)")
             - - "proxy"
               - _("Proxy header authentication")
+      - type: textInput
+        name: authProxyHeader
+        label: _("Proxy authentication header")
+        hint: _("Header the reverse proxy sets to the user name (auth.methods.proxy.header). Only used with proxy authentication. Make sure the service is reachable exclusively through the proxy, otherwise anybody can set the header himself.")
+        value: "X-Forwarded-User"
+        validators:
+          pattern:
+            pattern: "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+            errorData: _("Must be a valid HTTP header name (letters, digits, '-', '_').")
 
       - type: divider
         title: _("Security and advanced")
       - type: checkbox
         name: maskProtected
         label: _("Auto-mask protected directories")
-        hint: _("Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks.")
+        hint: _("Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks. When disabled, storage sources that contain one of these directories are rejected instead of being exposed.")
         value: true
       - type: textInput
         name: maskCount
@@ -189,8 +222,43 @@ data:
         monospace: true
         value: ""
 
+      - type: hidden
+        name: canStart
+        submitValue: false
+      - type: hidden
+        name: canStop
+        submitValue: false
+      - type: hidden
+        name: canRestart
+        submitValue: false
+      - type: hidden
+        name: canUpgrade
+        submitValue: false
+      - type: hidden
+        name: canOpen
+        submitValue: false
+      - type: hidden
+        name: openUrlBase
+        submitValue: false
+      - type: hidden
+        name: openUrlPath
+        submitValue: false
+
     buttons:
+      - text: _("Refresh status")
+        execute:
+          type: reloadData
       - text: _("Start")
+        enabledConstraint:
+          operator: and
+          arg0:
+            operator: truthy
+            arg0:
+              prop: canStart
+          arg1:
+            operator: truthy
+            arg0:
+              prop: enable
         execute:
           type: taskDialog
           taskDialog:
@@ -202,6 +270,10 @@ data:
                 service: FileBrowserQuantum
                 method: start
       - text: _("Stop")
+        enabledConstraint:
+          operator: truthy
+          arg0:
+            prop: canStop
         confirmationDialogConfig:
           template: confirmation
           message: _("Do you really want to stop the FileBrowser Quantum container? The container is removed; the data and source folders and the settings are kept.")
@@ -216,6 +288,16 @@ data:
                 service: FileBrowserQuantum
                 method: stop
       - text: _("Restart")
+        enabledConstraint:
+          operator: and
+          arg0:
+            operator: truthy
+            arg0:
+              prop: canRestart
+          arg1:
+            operator: truthy
+            arg0:
+              prop: enable
         confirmationDialogConfig:
           template: confirmation
           message: _("Do you really want to restart the FileBrowser Quantum container?")
@@ -230,9 +312,19 @@ data:
                 service: FileBrowserQuantum
                 method: restart
       - text: _("Upgrade")
+        enabledConstraint:
+          operator: and
+          arg0:
+            operator: truthy
+            arg0:
+              prop: canUpgrade
+          arg1:
+            operator: truthy
+            arg0:
+              prop: enable
         confirmationDialogConfig:
           template: confirmation
-          message: _("Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade.")
+          message: _("Do you really want to upgrade FileBrowser Quantum? A pinned image tag is advanced to the latest upstream release, the stack is re-rendered, the new image is pulled and the container is recreated. Read the upstream release notes before a major upgrade.")
         execute:
           type: taskDialog
           taskDialog:
@@ -274,15 +366,18 @@ data:
                 service: FileBrowserQuantum
                 method: getShowConfig
       - text: _("Open FileBrowser Quantum")
+        enabledConstraint:
+          operator: truthy
+          arg0:
+            prop: canOpen
         execute:
           type: url
           url: >-
             /externalRedirect/{{
-              (appUrl if appUrl else (
+              ((openUrlBase if openUrlBase else (
                 (location() | get('protocol')) + '//' +
-                (location() | get('hostname')) + ':' + port +
-                (baseURL if baseURL else '')
-              )) | encodeuricomponent
+                (location() | get('hostname')) + ':' + port
+              )) + openUrlPath) | encodeuricomponent
             }}
       - template: cancel
         execute:

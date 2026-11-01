@@ -16,7 +16,7 @@
 # Workbench assets.
 
 OMV_PACKAGE    := openmediavault-filebrowser-quantum
-OMV_VERSION    := 8.1.4
+OMV_VERSION    := 8.1.5
 OMV_PROJECT_DIR := $(CURDIR)
 OMV_WORKBENCH_DIR := $(OMV_PROJECT_DIR)/usr/share/openmediavault/workbench
 OMV_LOCALE_DIR   := $(OMV_PROJECT_DIR)/usr/share/openmediavault/locale
@@ -33,7 +33,7 @@ OMV_XGETTEXT_ARGS := --force-po --no-location \
 help:
 	@echo "Targets:"
 	@echo "  make validate             Parse every YAML and check i18n consistency (python3)"
-	@echo "  make test                 Run anti-recursion and declarative config test suite"
+	@echo "  make test                 Run the anti-recursion, gate, config.yaml and CLI test suites"
 	@echo "  make locale               Rebuild .pot, zh_CN and zh_TW .po via scripts/build_locale.py"
 	@echo "  make pot / omv_build_pot  Regenerate $(OMV_PACKAGE).pot from YAML/PHP sources (gettext)"
 	@echo "  make po-update            Merge new msgids into zh_CN/zh_TW .po (msgmerge)"

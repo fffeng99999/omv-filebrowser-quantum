@@ -1,10 +1,10 @@
 # Translation template for openmediavault-filebrowser-quantum.
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.4\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 17:55+0800\n"
-"PO-Revision-Date: 2026-11-01 17:55+0800\n"
+"POT-Creation-Date: 2026-11-01 19:30+0800\n"
+"PO-Revision-Date: 2026-11-01 19:30+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: \n"
 "Language: \n"
@@ -24,16 +24,40 @@ msgstr ""
 msgid "No paths masked"
 msgstr ""
 
+msgid "Healthy"
+msgstr ""
+
+msgid "Unhealthy"
+msgstr ""
+
+msgid "Starting"
+msgstr ""
+
+msgid "No health check"
+msgstr ""
+
+msgid "Unknown"
+msgstr ""
+
 msgid "FileBrowser Quantum is a modern, high-performance web file manager. The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data shared folder, configure storage sources on the Sources tab, save, then click Apply and use the buttons below to deploy and manage the container."
 msgstr ""
 
 msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
 msgstr ""
 
+msgid "The buttons act on the saved configuration. After a task finishes, click 'Refresh status' to reload the service state, the running version and the mask preview; a deployment that Docker reports as unhealthy makes Apply changes fail."
+msgstr ""
+
 msgid "Status"
 msgstr ""
 
 msgid "Service status"
+msgstr ""
+
+msgid "Container health"
+msgstr ""
+
+msgid "Health reported by Docker for the running container. 'No health check' means the image does not define one."
 msgstr ""
 
 msgid "Running version"
@@ -69,7 +93,7 @@ msgstr ""
 msgid "Image tag"
 msgstr ""
 
-msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. The Upgrade button advances a pinned tag to the latest upstream release before it pulls the image."
 msgstr ""
 
 msgid "FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta)."
@@ -105,13 +129,19 @@ msgstr ""
 msgid "User ID (PUID)"
 msgstr ""
 
-msgid "User ID for the container process and files written to shared folders."
+msgid "User ID for the container process and files written to shared folders. PUID 0 runs the container as root, which is the only option for folders that are owned by root and not readable for others (e.g. a root:root 700 volume root); PUID/PGID 1000:100 is the default for shared folders created by OMV. POSIX ACLs can grant access as well - the permission check below shows what the configured ID can read right now."
 msgstr ""
 
 msgid "Group ID (PGID)"
 msgstr ""
 
-msgid "Group ID for the container process and files written to shared folders."
+msgid "Group ID for the container process and files written to shared folders. Use 100 (the OMV 'users' group) together with PUID 1000, or 0 together with PUID 0 for root semantics."
+msgstr ""
+
+msgid "Permission check"
+msgstr ""
+
+msgid "Read access of the configured PUID/PGID to the data folder and the storage sources, evaluated when the page loads. Advisory only - POSIX ACLs also grant access and files created later can have different owners, so a 'NOT readable' entry is not a hard error. Without read access FileBrowser Quantum returns HTTP 403 in the web interface."
 msgstr ""
 
 msgid "Network"
@@ -120,25 +150,28 @@ msgstr ""
 msgid "Base URL"
 msgstr ""
 
-msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain."
+msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files), written to http.baseURL of the upstream config.yaml. Leave empty to serve at the root - clearing the field removes a previously configured prefix."
 msgstr ""
 
 msgid "Application URL"
 msgstr ""
 
-msgid "Optional public URL used for external links (e.g. https://files.example.com)."
+msgid "Optional public URL used for external links (e.g. https://files.example.com), written to http.externalUrl of the upstream config.yaml. Upstream appends the base URL on its own, so a sub path must not be repeated here."
+msgstr ""
+
+msgid "Must be empty or an absolute http(s) URL without whitespace (e.g. https://files.example.com)."
 msgstr ""
 
 msgid "Trust proxy headers"
 msgstr ""
 
-msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection."
+msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection (http.trustProxyHeaders)."
 msgstr ""
 
 msgid "Authentication method"
 msgstr ""
 
-msgid "Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication)."
+msgid "Authentication method written to auth.methods of the upstream config.yaml - password (internal user database), noauth (disable authentication completely) or proxy (HTTP header authentication). Only these keys are read by upstream 2.x - no environment variable is involved."
 msgstr ""
 
 msgid "Password (internal user database)"
@@ -150,13 +183,22 @@ msgstr ""
 msgid "Proxy header authentication"
 msgstr ""
 
+msgid "Proxy authentication header"
+msgstr ""
+
+msgid "Header the reverse proxy sets to the user name (auth.methods.proxy.header). Only used with proxy authentication. Make sure the service is reachable exclusively through the proxy, otherwise anybody can set the header himself."
+msgstr ""
+
+msgid "Must be a valid HTTP header name (letters, digits, '-', '_')."
+msgstr ""
+
 msgid "Security and advanced"
 msgstr ""
 
 msgid "Auto-mask protected directories"
 msgstr ""
 
-msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks."
+msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks. When disabled, storage sources that contain one of these directories are rejected instead of being exposed."
 msgstr ""
 
 msgid "Masked path count"
@@ -175,6 +217,9 @@ msgid "Extra environment options"
 msgstr ""
 
 msgid "Additional environment variables passed to the container, one per line in KEY=VALUE format. Lines starting with # are ignored."
+msgstr ""
+
+msgid "Refresh status"
 msgstr ""
 
 msgid "Start"
@@ -204,7 +249,7 @@ msgstr ""
 msgid "Upgrade"
 msgstr ""
 
-msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
+msgid "Do you really want to upgrade FileBrowser Quantum? A pinned image tag is advanced to the latest upstream release, the stack is re-rendered, the new image is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
 msgstr ""
 
 msgid "FileBrowser Quantum upgrade output"
@@ -292,17 +337,5 @@ msgid "Edit source"
 msgstr ""
 
 msgid "Updated source."
-msgstr ""
-
-msgid "Full"
-msgstr ""
-
-msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
-msgstr ""
-
-msgid "Slim"
-msgstr ""
-
-msgid "Source shared folder"
 msgstr ""
 

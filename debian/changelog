@@ -1,3 +1,63 @@
+openmediavault-filebrowser-quantum (8.1.5) stable; urgency=medium
+
+  * Fail-closed start and storage identity:
+    - The shared folder identity is a UUID again. 'My Photos' and
+      'My_Photos' both derived '/srv/My_Photos' and the storage source
+      form resolved that value to the first matching folder, so a source
+      could mount a folder the operator did not select. Colliding names
+      now get a deterministic UUID suffix and an ambiguous value is
+      rejected instead of being mapped.
+    - start/restart/upgrade run the same preconditions as the ctl
+      (enabled, data folder present, at least one resolvable source, no
+      pending Apply); 'omv-filebrowserquantum-ctl up' is fail-closed
+      itself, so a direct call cannot bypass them either.
+    - A stack that is still registered while the configuration became
+      incomplete (data folder or the last storage source removed) is
+      unregistered instead of being left behind with the old bind mounts.
+      The mask check now verifies the bind set in both directions.
+  * Upstream configuration and data protection:
+    - Authentication, base URL and external URL are written to
+      config.yaml (auth.methods.*, http.baseURL, http.externalUrl). The
+      unsupported FILEBROWSER_NOAUTH / FILEBROWSER_BASEURL /
+      APPLICATION_URL environment variables are gone; a proxy
+      authentication header can be configured.
+    - config.yaml is parsed strictly (an unparsable file aborts the start
+      instead of being overwritten), merged with the operator's own keys
+      and written atomically with a backup copy.
+    - Clearing the base URL really clears it, and the external URL is
+      written as origin only, so the Open button cannot produce
+      /files/files any more.
+    - Disabling the automatic masking no longer exposes the Compose
+      configuration tree: storage sources that contain a protected root
+      are rejected instead.
+  * Upgrade and feedback:
+    - Upgrade resolves the latest upstream release, advances a pinned
+      image tag in the configuration, re-renders the stack and only then
+      pulls the image and recreates the container; a failing pull aborts
+      the task instead of being ignored.
+    - The Salt state fails when the container is not running or Docker
+      reports it unhealthy, and the health state is shown in the UI.
+    - Buttons follow the real state (configured/enabled/running), a
+      "Refresh status" button reloads status, running version and mask
+      preview, and a failing "Check for latest version" shows the reason
+      instead of a success notification.
+    - Advisory PUID/PGID permission check with root and ACL hints, so a
+      permission problem is visible before the container answers 403.
+  * Tests and documentation:
+    - The Python suite imports the shipped fbq_tools.py, so the anti
+      recursion, gate and config.yaml code is executed instead of a copy
+      of it; the R-7 limit test is real. New PHP cases cover the
+      collision mapping, the URL round trip, the upgrade tag decision and
+      the stack revocation.
+    - validate-workbench.py validates the constraint structure (the
+      malformed requiredIf was not caught before) and rejects a ': '
+      inside a msgid.
+    - README rewritten for the multi source architecture; the unused
+      RESTRICTED_VOLUME_PREFIX is removed and the nested datamodel path
+      default is empty, consistent with the standalone model.
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sun, 01 Nov 2026 19:40:00 +0800
+
 openmediavault-filebrowser-quantum (8.1.4) stable; urgency=medium
 
   * Remove the leftover restricted volume check in the ctl:

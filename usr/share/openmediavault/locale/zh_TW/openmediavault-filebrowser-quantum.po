@@ -3,10 +3,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.4\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 17:55+0800\n"
-"PO-Revision-Date: 2026-11-01 17:55+0800\n"
+"POT-Creation-Date: 2026-11-01 19:30+0800\n"
+"PO-Revision-Date: 2026-11-01 19:30+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: Chinese (Traditional) <openmediavault-plugins@googlegroups.com>\n"
 "Language: zh_TW\n"
@@ -26,17 +26,41 @@ msgstr "未安裝"
 msgid "No paths masked"
 msgstr "無需遮蔽"
 
+msgid "Healthy"
+msgstr "健康"
+
+msgid "Unhealthy"
+msgstr "不健康"
+
+msgid "Starting"
+msgstr "啟動中"
+
+msgid "No health check"
+msgstr "無健康檢查"
+
+msgid "Unknown"
+msgstr "未知"
+
 msgid "FileBrowser Quantum is a modern, high-performance web file manager. The container is created in the Compose plugin (Services -> Compose -> Files) where it can also be inspected; configure the Compose plugin shared folder first (Services -> Compose -> Settings). Select the data shared folder, configure storage sources on the Sources tab, save, then click Apply and use the buttons below to deploy and manage the container."
 msgstr "FileBrowser Quantum 是現代、高效能網路檔案管理員。容器在 Compose 外掛中建立（服務 → Compose → 檔案），也可在那裡檢視；請先設定 Compose 外掛的共享資料夾（服務 → Compose → 設定）。選取資料共享資料夾，在「儲存來源」分頁設定儲存來源，儲存並點「套用」，再用下方按鈕部署與管理容器。"
 
 msgid "This plugin manages the FileBrowser Quantum v2 line (config.yaml and a SQLite database in the data folder); the v1.5.x line uses a different configuration format and is not supported. On the first start a random admin password is generated and written to the container log - open the web interface and change it immediately."
 msgstr "本外掛管理 FileBrowser Quantum v2 產品線（資料資料夾中的 config.yaml 與 SQLite 資料庫）；v1.5.x 產品線採用不同設定格式且不受支援。首次啟動時會產生隨機管理員密碼並寫入容器日誌——請開啟 Web 介面並立即修改。"
 
+msgid "The buttons act on the saved configuration. After a task finishes, click 'Refresh status' to reload the service state, the running version and the mask preview; a deployment that Docker reports as unhealthy makes Apply changes fail."
+msgstr "按鈕作用於已儲存的設定。任務結束後請點「重新整理狀態」重新讀取服務狀態、執行版本與遮蔽預覽；Docker 回報容器不健康時，「套用」會失敗。"
+
 msgid "Status"
 msgstr "狀態"
 
 msgid "Service status"
 msgstr "服務狀態"
+
+msgid "Container health"
+msgstr "容器健康狀態"
+
+msgid "Health reported by Docker for the running container. 'No health check' means the image does not define one."
+msgstr "由 Docker 回報的執行中容器健康狀態。「無健康檢查」表示映像未定義健康檢查。"
 
 msgid "Running version"
 msgstr "執行版本"
@@ -71,8 +95,8 @@ msgstr "FileBrowser Quantum Web 介面在宿主機上的連接埠（容器內部
 msgid "Image tag"
 msgstr "映像標籤"
 
-msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. Change it here and Apply, or use the Upgrade button."
-msgstr "ghcr.io/gtsteffaniak/filebrowser 映像的 Docker 標籤，不含開頭的 'v'（例如 2.0.10-beta）。請使用 v2 標籤；使用具體版本號（而非 'beta' 或 'stable'）可確保部署可重現。在此修改後套用，或使用「升級」按鈕。"
+msgid "Docker image tag of the ghcr.io/gtsteffaniak/filebrowser image, without a leading 'v' (e.g. 2.0.10-beta). Use a v2 tag; a specific version (not 'beta' or 'stable') keeps the deployment reproducible. The Upgrade button advances a pinned tag to the latest upstream release before it pulls the image."
+msgstr "ghcr.io/gtsteffaniak/filebrowser 映像的 Docker 標籤，不含開頭的 'v'（例如 2.0.10-beta）。請使用 v2 標籤；使用具體版本號（而非 'beta' 或 'stable'）可確保部署可重現。「升級」按鈕會先把固定標籤推進到上游最新發布版本，再拉取映像。"
 
 msgid "FileBrowser v1.x tags are not supported. Use a v2 tag (e.g. 2.0.10-beta)."
 msgstr "不支援 FileBrowser v1.x 標籤。請使用 v2 標籤（例如 2.0.10-beta）。"
@@ -107,14 +131,20 @@ msgstr "用於 FileBrowser Quantum 設定、SQLite 資料庫與快取的共享�
 msgid "User ID (PUID)"
 msgstr "使用者 ID (PUID)"
 
-msgid "User ID for the container process and files written to shared folders."
-msgstr "容器程序及寫入共享資料夾檔案所使用的使用者 ID。"
+msgid "User ID for the container process and files written to shared folders. PUID 0 runs the container as root, which is the only option for folders that are owned by root and not readable for others (e.g. a root:root 700 volume root); PUID/PGID 1000:100 is the default for shared folders created by OMV. POSIX ACLs can grant access as well - the permission check below shows what the configured ID can read right now."
+msgstr "容器程序及寫入共享資料夾檔案所使用的使用者 ID。PUID 0 表示以 root 執行容器——當資料夾屬於 root 且其他人不可讀時（例如 root:root 700 的卷根目錄）這是唯一可行方案；OMV 建立的共享資料夾預設使用 PUID/PGID 1000:100。POSIX ACL 也可授予存取權——下方權限檢查會顯示目前設定的 ID 現在能讀到什麼。"
 
 msgid "Group ID (PGID)"
 msgstr "群組 ID (PGID)"
 
-msgid "Group ID for the container process and files written to shared folders."
-msgstr "容器程序及寫入共享資料夾檔案所使用的群組 ID。"
+msgid "Group ID for the container process and files written to shared folders. Use 100 (the OMV 'users' group) together with PUID 1000, or 0 together with PUID 0 for root semantics."
+msgstr "容器程序及寫入共享資料夾檔案所使用的群組 ID。與 PUID 1000 搭配時使用 100（OMV 的 users 群組），需要 root 語意時與 PUID 0 搭配使用 0。"
+
+msgid "Permission check"
+msgstr "權限檢查"
+
+msgid "Read access of the configured PUID/PGID to the data folder and the storage sources, evaluated when the page loads. Advisory only - POSIX ACLs also grant access and files created later can have different owners, so a 'NOT readable' entry is not a hard error. Without read access FileBrowser Quantum returns HTTP 403 in the web interface."
+msgstr "頁面載入時評估所設定 PUID/PGID 對資料資料夾與儲存來源的讀取權限。僅為提示 - POSIX ACL 同樣可授予存取權，且後續新建的檔案可能屬於其他使用者，因此出現「不可讀」項目並非硬性錯誤。若無讀取權限，FileBrowser Quantum 會在 Web 介面回傳 HTTP 403。"
 
 msgid "Network"
 msgstr "網路"
@@ -122,26 +152,29 @@ msgstr "網路"
 msgid "Base URL"
 msgstr "基準 URL (Base URL)"
 
-msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files). Leave empty for root domain."
-msgstr "在反向代理子路徑（例如 /files）後執行時可選的 URL 路徑前綴。根網域存取請留空。"
+msgid "Optional URL path prefix when running behind a reverse proxy subpath (e.g. /files), written to http.baseURL of the upstream config.yaml. Leave empty to serve at the root - clearing the field removes a previously configured prefix."
+msgstr "在反向代理子路徑（例如 /files）後執行時可選的 URL 路徑前綴，寫入上游 config.yaml 的 http.baseURL。根路徑存取請留空——清空該欄位會移除先前設定的前綴。"
 
 msgid "Application URL"
 msgstr "應用 URL"
 
-msgid "Optional public URL used for external links (e.g. https://files.example.com)."
-msgstr "用於外部連結的可選公網 URL（例如 https://files.example.com）。"
+msgid "Optional public URL used for external links (e.g. https://files.example.com), written to http.externalUrl of the upstream config.yaml. Upstream appends the base URL on its own, so a sub path must not be repeated here."
+msgstr "用於外部連結的可選公網 URL（例如 https://files.example.com），寫入上游 config.yaml 的 http.externalUrl。上游會自行附加基準 URL，因此此處不要重複子路徑。"
+
+msgid "Must be empty or an absolute http(s) URL without whitespace (e.g. https://files.example.com)."
+msgstr "必須留空或為不含空白的絕對 http(s) URL（例如 https://files.example.com）。"
 
 msgid "Trust proxy headers"
 msgstr "信任代理標頭"
 
-msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection."
-msgstr "信任來自反向代理的 X-Forwarded-* 標頭以進行用戶端 IP 與通訊協定探測。"
+msgid "Trust X-Forwarded-* headers from reverse proxies for client IP and protocol detection (http.trustProxyHeaders)."
+msgstr "信任來自反向代理的 X-Forwarded-* 標頭以進行用戶端 IP 與通訊協定探測（http.trustProxyHeaders）。"
 
 msgid "Authentication method"
 msgstr "身分驗證方式"
 
-msgid "Authentication method - password (standard internal user database), noauth (disable authentication completely), or proxy (HTTP header authentication)."
-msgstr "身分驗證方式：password（標準內建使用者資料庫）、noauth（完全停用身分驗證）或 proxy（HTTP 標頭代理認證）。"
+msgid "Authentication method written to auth.methods of the upstream config.yaml - password (internal user database), noauth (disable authentication completely) or proxy (HTTP header authentication). Only these keys are read by upstream 2.x - no environment variable is involved."
+msgstr "身分驗證方式，寫入上游 config.yaml 的 auth.methods - password（標準內建使用者資料庫）、noauth（完全停用身分驗證）或 proxy（HTTP 標頭代理認證）。上游 2.x 只讀取這些設定鍵，不涉及任何環境變數。"
 
 msgid "Password (internal user database)"
 msgstr "密碼驗證（內建使用者資料庫）"
@@ -152,14 +185,23 @@ msgstr "無需驗證（公開存取）"
 msgid "Proxy header authentication"
 msgstr "代理標頭驗證"
 
+msgid "Proxy authentication header"
+msgstr "代理認證標頭"
+
+msgid "Header the reverse proxy sets to the user name (auth.methods.proxy.header). Only used with proxy authentication. Make sure the service is reachable exclusively through the proxy, otherwise anybody can set the header himself."
+msgstr "反向代理用於傳遞使用者名稱的標頭（auth.methods.proxy.header），僅在 proxy 方式下使用。請確保服務只能經代理存取，否則任何人都能自行設定該標頭。"
+
+msgid "Must be a valid HTTP header name (letters, digits, '-', '_')."
+msgstr "必須是合法的 HTTP 標頭名稱（字母、數字、'-'、'_'）。"
+
 msgid "Security and advanced"
 msgstr "安全與進階選項"
 
 msgid "Auto-mask protected directories"
 msgstr "自動遮蔽敏感保護目錄"
 
-msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks."
-msgstr "當 RustFS 物件儲存、Compose 共享資料夾與 Docker data-root 位於掛載的儲存來源內部時，自動掛載空的唯讀 1 MiB tmpfs 進行遮蔽，防止循環遞迴與憑證洩漏。"
+msgid "Mount an empty, read-only 1 MiB tmpfs over the RustFS object store, the Compose shared folder and the Docker data root whenever they fall inside a mounted storage source, preventing recursion and credential leaks. When disabled, storage sources that contain one of these directories are rejected instead of being exposed."
+msgstr "當 RustFS 物件儲存、Compose 共享資料夾與 Docker data-root 位於掛載的儲存來源內部時，自動掛載空的唯讀 1 MiB tmpfs 進行遮蔽，防止循環遞迴與憑證洩漏。若關閉該選項，包含上述目錄的儲存來源將被拒絕，而不會被公開。"
 
 msgid "Masked path count"
 msgstr "遮蔽路徑數"
@@ -178,6 +220,9 @@ msgstr "額外環境變數選項"
 
 msgid "Additional environment variables passed to the container, one per line in KEY=VALUE format. Lines starting with # are ignored."
 msgstr "傳遞給容器的附加環境變數，每行一個 KEY=VALUE 格式。以 # 開頭的行將被忽略。"
+
+msgid "Refresh status"
+msgstr "重新整理狀態"
 
 msgid "Start"
 msgstr "啟動"
@@ -206,8 +251,8 @@ msgstr "FileBrowser Quantum 重啟輸出"
 msgid "Upgrade"
 msgstr "升級"
 
-msgid "Do you really want to upgrade the FileBrowser Quantum container? A newer image for the configured tag is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
-msgstr "確定要升級 FileBrowser Quantum 容器嗎？將拉取所設定標籤的最新映像並重建容器。大版本升級前請閱讀上游發布說明。"
+msgid "Do you really want to upgrade FileBrowser Quantum? A pinned image tag is advanced to the latest upstream release, the stack is re-rendered, the new image is pulled and the container is recreated. Read the upstream release notes before a major upgrade."
+msgstr "確定要升級 FileBrowser Quantum 嗎？固定的映像標籤會先推進到上游最新發布版本，重新渲染堆疊檔案，拉取新映像並重建容器。大版本升級前請閱讀上游發布說明。"
 
 msgid "FileBrowser Quantum upgrade output"
 msgstr "FileBrowser Quantum 升級輸出"
@@ -295,16 +340,4 @@ msgstr "編輯儲存來源"
 
 msgid "Updated source."
 msgstr "儲存來源已更新。"
-
-msgid "Full"
-msgstr "Full"
-
-msgid "Shared folder whose files are browsed in the FileBrowser Quantum web interface (mounted read-write at /srv). Additional sources can only be added by editing config.yaml in the data shared folder."
-msgstr "在 FileBrowser Quantum Web 介面中瀏覽其檔案的共享資料夾（以可讀寫方式掛載在 /srv）。額外的儲存來源只能透過編輯資料共享資料夾中的 config.yaml 新增。"
-
-msgid "Slim"
-msgstr "Slim"
-
-msgid "Source shared folder"
-msgstr "來源共享資料夾"
 

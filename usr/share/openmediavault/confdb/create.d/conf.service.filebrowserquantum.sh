@@ -29,6 +29,7 @@ set -e
 #       <appUrl></appUrl>
 #       <trustProxyHeaders>0|1</trustProxyHeaders>
 #       <authMethod>password|noauth|proxy</authMethod>
+#       <authProxyHeader>X-Forwarded-User</authProxyHeader>
 #       <puid>1000</puid>
 #       <pgid>100</pgid>
 #       <maskProtected>0|1</maskProtected>
@@ -50,6 +51,7 @@ if ! omv_config_exists "/config/services/filebrowserquantum"; then
 	omv_config_add_key "/config/services/filebrowserquantum" "appUrl" ""
 	omv_config_add_key "/config/services/filebrowserquantum" "trustProxyHeaders" "0"
 	omv_config_add_key "/config/services/filebrowserquantum" "authMethod" "password"
+omv_config_add_key "/config/services/filebrowserquantum" "authProxyHeader" "X-Forwarded-User"
 	omv_config_add_key "/config/services/filebrowserquantum" "puid" "1000"
 	omv_config_add_key "/config/services/filebrowserquantum" "pgid" "100"
 	omv_config_add_key "/config/services/filebrowserquantum" "maskProtected" "1"

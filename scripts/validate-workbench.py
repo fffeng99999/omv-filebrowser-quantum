@@ -96,6 +96,126 @@ def _unpo(token: str) -> str:
         return token.strip('"')
 
 
+# Constraint operators taken from the Workbench type definition
+# (shared/models/constraint.type.ts).
+CONSTRAINT_OPERATORS = {
+    "&&", "and", "||", "or", "!", "not", "if",
+    "===", "eq", "!==", "ne", "<>", "==", "!=",
+    "<", "lt", "<=", "le", ">", "gt", ">=", "ge",
+    "empty", "z", "notEmpty", "n", "in", "startsWith", "endsWith",
+    "regex", "length", "UUID", "truthy", "falsy", "has",
+}
+
+
+def iter_fields(fields) -> "list[dict]":
+    """Flatten the (possibly nested) field list of a form page."""
+    result: list[dict] = []
+    for field in fields or []:
+        if not isinstance(field, dict):
+            continue
+        result.append(field)
+        result.extend(iter_fields(field.get("fields")))
+    return result
+
+
+def check_constraint(node, where: str, fields: set[str]) -> None:
+    """Validate one constraint tree (structure + field references).
+
+    The bug class this catches: ``requiredIf: {arg0: enable}`` instead of
+    ``{arg0: {prop: enable}}``. The workbench accepts the file silently and
+    only fails (or silently does not validate) in the browser.
+    """
+    if not isinstance(node, dict):
+        fail(f"{where}: constraint must be an object like {{prop: <field>}} "
+             f"or {{operator: ..., arg0: ...}}, got {node!r}")
+        return
+    keys = set(node)
+    if keys == {"value"}:
+        return
+    if "prop" in keys:
+        if keys != {"prop"}:
+            fail(f"{where}: a property reference must only contain 'prop' "
+                 f"(got {sorted(keys)})")
+            return
+        name = node["prop"]
+        if not isinstance(name, str) or not name:
+            fail(f"{where}: 'prop' must be a non-empty string")
+        elif not name.startswith("_") and name not in fields:
+            fail(f"{where}: constraint references unknown field '{name}'")
+        return
+    if "operator" not in keys:
+        fail(f"{where}: constraint object needs 'operator', 'prop' or "
+             f"'value' (got {sorted(keys) or 'nothing'})")
+        return
+    operator = node["operator"]
+    if operator not in CONSTRAINT_OPERATORS:
+        fail(f"{where}: unknown constraint operator '{operator}'")
+    if "arg0" not in keys:
+        fail(f"{where}: operator '{operator}' requires 'arg0'")
+    else:
+        # arg0 must be a constraint, a property reference or a value
+        # object - a bare string (e.g. "arg0: enable") is the classic
+        # mistake and is rejected here.
+        if not isinstance(node["arg0"], dict):
+            fail(f"{where}: 'arg0' of operator '{operator}' must be an "
+                 f"object ({{prop: <field>}}), got {node['arg0']!r}")
+        else:
+            check_constraint(node["arg0"], f"{where}.arg0", fields)
+    if "arg1" in keys:
+        arg1 = node["arg1"]
+        if isinstance(arg1, dict):
+            check_constraint(arg1, f"{where}.arg1", fields)
+
+
+def check_form_constraints(path: pathlib.Path, data: dict) -> None:
+    """Validate every constraint used by a form page component."""
+    fields = iter_fields(data.get("fields"))
+    names = {f["name"] for f in fields if isinstance(f.get("name"), str)}
+    rel = path.name
+    for field in fields:
+        label = f"{rel}: field '{field.get('name', '?')}'"
+        validators = field.get("validators") or {}
+        if isinstance(validators, dict) and "requiredIf" in validators:
+            check_constraint(validators["requiredIf"],
+                             f"{label}.requiredIf", names)
+        if isinstance(validators, dict):
+            for index, custom in enumerate(validators.get("custom") or []):
+                if isinstance(custom, dict) and "constraint" in custom:
+                    check_constraint(custom["constraint"],
+                                     f"{label}.custom[{index}]", names)
+        for index, modifier in enumerate(field.get("modifiers") or []):
+            if not isinstance(modifier, dict):
+                continue
+            if "constraint" in modifier and "deps" in modifier:
+                fail(f"{label}.modifiers[{index}]: 'constraint' and 'deps' "
+                     f"are mutually exclusive")
+            if modifier.get("type") == "value" and "typeConfig" not in modifier:
+                fail(f"{label}.modifiers[{index}]: a value modifier needs "
+                     f"'typeConfig' (the new value), not 'value'")
+            if "constraint" in modifier:
+                check_constraint(modifier["constraint"],
+                                 f"{label}.modifiers[{index}]", names)
+    for index, button in enumerate(data.get("buttons") or []):
+        if not isinstance(button, dict):
+            continue
+        label = f"{rel}: button '{button.get('text', index)}'"
+        if "enabledConstraint" in button:
+            check_constraint(button["enabledConstraint"],
+                             f"{label}.enabledConstraint", names)
+        execute = button.get("execute") or {}
+        if isinstance(execute, dict) and execute.get("type") == "taskDialog":
+            request = ((execute.get("taskDialog") or {}).get("config") or {}).get("request")
+            if not isinstance(request, dict) or "method" not in request:
+                fail(f"{label}: a taskDialog needs execute.taskDialog.config.request.method")
+        if isinstance(execute, dict) and execute.get("type") == "request":
+            request = execute.get("request")
+            if not isinstance(request, dict) or "method" not in request:
+                fail(f"{label}: a request action needs execute.request.method")
+        if isinstance(execute, dict) and execute.get("type") == "url":
+            if not execute.get("url"):
+                fail(f"{label}: a url action needs execute.url")
+
+
 def main() -> int:
     component_files = sorted((WB / "component.d").glob("*.yaml"))
     route_files = sorted((WB / "route.d").glob("*.yaml"))
@@ -174,6 +294,14 @@ def main() -> int:
     # 5-6. i18n: gather msgids and cross-check with the catalogs.
     used_msgids: dict[str, list[str]] = {}
     for path in component_files + route_files + nav_files:
+        for lineno, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1):
+            pos = line.find('_("')
+            # The manifests keep _("...") as a YAML plain scalar, which may
+            # not contain a colon followed by a space.
+            if pos >= 0 and ": " in line[pos:]:
+                fail(f"{path.name}:{lineno}: a _() msgid must not contain "
+                     f"': ' (it breaks the YAML plain scalar)")
         for msgid in collect_msgids(path):
             if TOKEN_RE.search(msgid):
                 fail(f"{path.name}: _() msgid contains a {{{{ token }}}}: "
@@ -210,7 +338,15 @@ def main() -> int:
             if mid_v and not mstr_v:
                 fail(f"{label} .po has empty translation for {mid_v!r}")
 
-    # 7. LF line endings for all shipped text files.
+    # 7. Constraints: structure and field references (a malformed
+    #    requiredIf is accepted by the workbench but never validates).
+    for path in component_files:
+        doc = load_yaml(path)
+        data = doc.get("data", {})
+        if data.get("type") == "formPage":
+            check_form_constraints(path, data)
+
+    # 8. LF line endings for all shipped text files.
     text_globs = ("**/*.yaml", "**/*.yml", "**/*.json", "**/*.inc",
                   "**/*.php", "**/*.po", "**/*.pot", "**/*.sh", "**/*.sls",
                   "**/*.md", "**/Makefile", "Makefile")

@@ -7,3 +7,6 @@ debian/.debhelper/
 debian/openmediavault-filebrowser-quantum/
 debian/files
 debian/debhelper-build-stamp
+.tmp-tests/
+__pycache__/
+*.pyc

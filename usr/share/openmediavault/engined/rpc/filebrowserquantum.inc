@@ -81,13 +81,23 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	];
 
 	/**
+	 * Default header used by the upstream proxy authentication.
+	 */
+	const DEFAULT_PROXY_HEADER = "X-Forwarded-User";
+
+	/**
+	 * Authentication methods understood by the upstream config.yaml.
+	 */
+	const AUTH_METHODS = ["password", "noauth", "proxy"];
+
+	/**
 	 * Settings fields allowed to be persisted by set().
 	 */
 	private $settingsFields = [
 		"enable", "version", "port", "imageVariant",
 		"dataRef", "sourceRef", "baseURL", "appUrl",
-		"trustProxyHeaders", "authMethod", "puid", "pgid",
-		"maskProtected", "extraOptions"
+		"trustProxyHeaders", "authMethod", "authProxyHeader",
+		"puid", "pgid", "maskProtected", "extraOptions"
 	];
 
 	public function getName()
@@ -150,6 +160,136 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 			$tag .= "-slim";
 		}
 		return self::IMAGE_REPO . ":" . $tag;
+	}
+
+	/**
+	 * Normalize the reverse proxy sub path ('http.baseURL').
+	 *
+	 * Empty input (or '/') means "served at the root". A value that is
+	 * cleared in the form really clears the stored value instead of
+	 * keeping the previous prefix.
+	 */
+	private function normalizeBaseURL(string $value): string
+	{
+		$text = trim($value);
+		if (("" === $text) || ("/" === $text)) {
+			return "";
+		}
+		if (!str_starts_with($text, "/")) {
+			throw new \OMV\Exception(sprintf(
+				"The base URL '%s' must start with '/'.",
+				$text
+			));
+		}
+		if (1 === preg_match('/[\s?#"\'\\\\]/', $text)) {
+			throw new \OMV\Exception(sprintf(
+				"The base URL '%s' must not contain whitespace, quotes, '?' or '#'.",
+				$text
+			));
+		}
+		$text = rtrim((string)preg_replace('#/+#', '/', $text), "/");
+		if (strlen($text) > 128) {
+			throw new \OMV\Exception("The base URL must not exceed 128 characters.");
+		}
+		return $text;
+	}
+
+	/**
+	 * Validate an optional public base URL ('http.externalUrl').
+	 */
+	private function validateAppUrl(string $value): string
+	{
+		$text = rtrim(trim($value), "/");
+		if ("" === $text) {
+			return "";
+		}
+		if (1 !== preg_match('#^https?://[^/\s]+(/[^\s]*)?$#i', $text)) {
+			throw new \OMV\Exception(sprintf(
+				"The application URL '%s' must start with http:// or https:// and must not contain whitespace.",
+				$text
+			));
+		}
+		return $text;
+	}
+
+	/**
+	 * Origin (scheme://host[:port]) of a public URL.
+	 *
+	 * Upstream appends 'http.baseURL' to 'http.externalUrl' on its own, so
+	 * only the origin may be written into config.yaml - otherwise every
+	 * generated link would contain the sub path twice (/files/files).
+	 */
+	private function appUrlOrigin(string $appUrl): string
+	{
+		$text = trim($appUrl);
+		if ("" === $text) {
+			return "";
+		}
+		if (1 === preg_match('#^(https?://[^/\s]+)#i', $text, $matches)) {
+			return $matches[1];
+		}
+		return "";
+	}
+
+	/**
+	 * Split the public URL into the part the operator typed and the base
+	 * path, so the 'Open' button never produces '/files/files' either.
+	 */
+	private function splitAppUrl(string $appUrl, string $baseURL): array
+	{
+		$url = trim($appUrl);
+		$base = trim($baseURL);
+		if ("" === $url) {
+			return ["base" => "", "path" => $base];
+		}
+		if (("" !== $base) && (strlen($url) > strlen($base)) &&
+				(substr($url, -strlen($base)) === $base)) {
+			return [
+				"base" => rtrim(substr($url, 0, -strlen($base)), "/"),
+				"path" => $base
+			];
+		}
+		return ["base" => $url, "path" => $base];
+	}
+
+	/**
+	 * A pinned image tag (e.g. 2.0.10-beta) selects one immutable image;
+	 * a floating tag (e.g. beta, stable) always pulls the newest one.
+	 */
+	private function isPinnedTag(string $version): bool
+	{
+		return (1 === preg_match('/^v?\d+\.\d+\.\d+/', trim($version)));
+	}
+
+	/**
+	 * Tag the configured release should be advanced to, or '' when the
+	 * configured tag is already current (or floating).
+	 */
+	private function nextTagForUpgrade(string $current, string $latest): string
+	{
+		$cur = ltrim(trim($current), "v");
+		$lat = ltrim(trim($latest), "v");
+		if (("" === $cur) || ("" === $lat)) {
+			return "";
+		}
+		$curCmp = (string)preg_replace('/-slim$/', "", $cur);
+		$latCmp = (string)preg_replace('/-slim$/', "", $lat);
+		return version_compare($latCmp, $curCmp, ">") ? $lat : "";
+	}
+
+	/**
+	 * Latest upstream release tag of the given channel ('' when the
+	 * upstream cannot be reached).
+	 */
+	private function fetchLatestTag(string $channel): string
+	{
+		list($exitCode, $output) = $this->runCtl(["latest", $channel], false);
+		$tag = trim(implode("\n", $output));
+		if ((0 !== $exitCode) || ("" === $tag)) {
+			return "";
+		}
+		$tag = ltrim($tag, "v");
+		return (1 === preg_match('/^\d+\.\d+/', $tag)) ? $tag : "";
 	}
 
 	/**
@@ -244,6 +384,69 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	}
 
 	/**
+	 * Hex digits of a UUID (used for deterministic path suffixes).
+	 */
+	private function uuidHex(string $uuid): string
+	{
+		return (string)preg_replace('/[^0-9a-f]/i', '', $uuid);
+	}
+
+	/**
+	 * Shared folder index: UUID => name plus the container path derived
+	 * for it.
+	 *
+	 * The derived path is the identity token the storage source form
+	 * submits, so it must identify exactly one shared folder. Names that
+	 * sanitize to the same segment (e.g. 'My Photos' and 'My_Photos' both
+	 * yield '/srv/My_Photos') are disambiguated with a deterministic UUID
+	 * suffix instead of falling back to first-match-wins, which could
+	 * mount a folder the operator did not select.
+	 */
+	private function getSharedFolderIndex($context): array
+	{
+		$index = [];
+		$bySegment = [];
+		foreach ($this->listSharedFolders($context) as $folder) {
+			$uuid = (string)($folder["uuid"] ?? "");
+			if ("" === $uuid) {
+				continue;
+			}
+			$name = (string)($folder["name"] ?? "");
+			$derived = $this->normalizeContainerPath(
+				$this->deriveContainerPath($name, $uuid)
+			);
+			$index[$uuid] = [
+				"uuid" => $uuid,
+				"name" => $name,
+				"path" => $derived
+			];
+			$bySegment[$derived][] = $uuid;
+		}
+
+		// Disambiguate collisions deterministically (independent of the
+		// order the shared folders are read in).
+		$taken = [];
+		foreach ($bySegment as $derived => $uuids) {
+			if (count($uuids) < 2) {
+				continue;
+			}
+			foreach ($uuids as $uuid) {
+				$candidate = $derived . "-" . substr($this->uuidHex($uuid), 0, 8);
+				$counter = 0;
+				while (isset($taken[$candidate]) || isset($bySegment[$candidate])) {
+					++$counter;
+					$candidate = $derived . "-" .
+						substr($this->uuidHex($uuid), 0, 8) . "-" . $counter;
+				}
+				$index[$uuid]["path"] = $candidate;
+				$taken[$candidate] = $uuid;
+			}
+		}
+
+		return $index;
+	}
+
+	/**
 	 * Container path derived for the given shared folder reference
 	 * (empty when the reference cannot be resolved).
 	 */
@@ -252,13 +455,8 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 		if ("" === $ref) {
 			return "";
 		}
-		$name = $this->sharedFolderName($context, $ref);
-		if ("" === $name) {
-			return "";
-		}
-		return $this->normalizeContainerPath(
-			$this->deriveContainerPath($name, $ref)
-		);
+		$index = $this->getSharedFolderIndex($context);
+		return (string)($index[$ref]["path"] ?? "");
 	}
 
 	/**
@@ -267,10 +465,9 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	 * chosen shared folder, so the 'Container path' field can be filled
 	 * in from it. Resolve that value back to the shared folder UUID.
 	 *
-	 * The derived path is unique per shared folder name in practice. If
-	 * two names sanitize to the same segment the first match wins, but
-	 * such a pair can never be mounted twice because the container path
-	 * must be unique as well.
+	 * A plain UUID is accepted as well (API clients). A value that maps
+	 * to more than one shared folder is rejected instead of silently
+	 * picking the first one.
 	 */
 	private function sharedFolderRefByContainerPath($context, string $cpath): string
 	{
@@ -278,17 +475,29 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 			return "";
 		}
 		$normalized = $this->normalizeContainerPath($cpath);
-		foreach ($this->listSharedFolders($context) as $folder) {
-			$uuid = (string)($folder["uuid"] ?? "");
-			if ("" === $uuid) {
-				continue;
+		if ("" === $normalized) {
+			return "";
+		}
+		$index = $this->getSharedFolderIndex($context);
+		if (isset($index[$normalized])) {
+			return $normalized;
+		}
+		$matches = [];
+		foreach ($index as $uuid => $entry) {
+			if ($entry["path"] === $normalized) {
+				$matches[] = $uuid;
 			}
-			$derived = $this->normalizeContainerPath(
-				$this->deriveContainerPath((string)($folder["name"] ?? ""), $uuid)
-			);
-			if ($derived === $normalized) {
-				return $uuid;
-			}
+		}
+		if (1 === count($matches)) {
+			return $matches[0];
+		}
+		if (count($matches) > 1) {
+			throw new \OMV\Exception(sprintf(
+				"The selected shared folder is ambiguous ('%s' matches %d shared folders). " .
+				"Reload the page and select the shared folder again.",
+				$cpath,
+				count($matches)
+			));
 		}
 		return "";
 	}
@@ -550,6 +759,28 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 				}
 			}
 
+			// Roots that are only hidden by the optional tmpfs masking must
+			// not be exposed when masking is disabled: the operator has to
+			// pick a narrower source folder instead of silently publishing
+			// the Compose configuration tree or the Docker data-root.
+			if (!$maskProtected) {
+				$sensitiveRoots = [
+					"the Compose plugin shared folder (stack .env credentials)" => $composeSfHost,
+					"the Docker data-root" => $dockerRootHost,
+					"the RustFS object store" => $rustfsDataHost
+				];
+				foreach ($sensitiveRoots as $label => $rootHost) {
+					if (!empty($rootHost) && $this->isStrictDescendant($rootHost, $host)) {
+						throw new \OMV\Exception(sprintf(
+							"The storage source '%s' contains %s and automatic masking is disabled. " .
+							"Enable auto-masking or choose a narrower shared folder.",
+							$host,
+							$label
+						));
+					}
+				}
+			}
+
 			$resolvedSources[] = array_merge($s, ["hostPath" => $host]);
 		}
 
@@ -680,26 +911,15 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 			$tmpfsSection = "\n" . implode("\n", $tmpfsLines);
 		}
 
-		// Environment
+		// Environment: only the container runtime variables are rendered
+		// here. baseURL, externalUrl and the authentication methods are
+		// owned by the upstream config.yaml (see prepare_config in the
+		// ctl); FILEBROWSER_BASEURL, APPLICATION_URL and FILEBROWSER_NOAUTH
+		// are not supported by upstream 2.x and are not emitted any more.
 		$envLines = [];
 		$envLines[] = "      - PUID=" . $puid;
 		$envLines[] = "      - PGID=" . $pgid;
 		$envLines[] = "      - UMASK=002";
-
-		$baseURL = trim((string)($config["baseURL"] ?? ""));
-		if (!empty($baseURL)) {
-			$envLines[] = "      - FILEBROWSER_BASEURL=" . $baseURL;
-		}
-
-		$appUrl = trim((string)($config["appUrl"] ?? ""));
-		if (!empty($appUrl)) {
-			$envLines[] = "      - APPLICATION_URL=" . $appUrl;
-		}
-
-		$authMethod = trim((string)($config["authMethod"] ?? "password"));
-		if ("noauth" === $authMethod) {
-			$envLines[] = "      - FILEBROWSER_NOAUTH=true";
-		}
 
 		$extra = trim((string)($config["extraOptions"] ?? ""));
 		if (!empty($extra)) {
@@ -762,7 +982,40 @@ YAML;
 	}
 
 	/**
+	 * Remove the stack from the Compose plugin (stops the container and
+	 * deletes the generated stack files; the shared folders are kept).
+	 *
+	 * Returns true when a stack was registered and removed.
+	 */
+	private function unregisterStack($context): bool
+	{
+		$uuid = $this->findStackUuid($context);
+		if ("" === $uuid) {
+			return false;
+		}
+		try {
+			\OMV\Rpc\Rpc::call("Compose", "deleteFile", [
+				"uuid" => $uuid
+			], $context);
+		} catch (\Exception $e) {
+			throw new \OMV\Exception(sprintf(
+				"The FileBrowser Quantum stack could not be removed from the Compose plugin: %s. " .
+				"Delete it on the Compose page (Services -> Compose -> Files).",
+				$e->getMessage()
+			));
+		}
+		return true;
+	}
+
+	/**
 	 * Create or update the FileBrowser Quantum stack in the openmediavault-compose plugin.
+	 *
+	 * When the configuration becomes incomplete (data folder or the last
+	 * storage source removed) a stack that is still registered is removed
+	 * instead of being left behind: the container would otherwise keep
+	 * running with the previous - now wrong - bind mounts while the plugin
+	 * shows no sources at all. A first-time configuration has no stack
+	 * yet, so "not configured yet" and "became incomplete" differ.
 	 */
 	private function syncComposeStack($context, array $config): void
 	{
@@ -770,7 +1023,7 @@ YAML;
 		$sources = $this->getAllSources();
 
 		if (empty($dataRef) || empty($sources)) {
-			// Configuration incomplete - do not publish yet
+			$this->unregisterStack($context);
 			return;
 		}
 
@@ -847,6 +1100,17 @@ YAML;
 			"notinstalled" => "Not installed"
 		][$state];
 
+		// Container health (the Salt state fails when this is unhealthy).
+		list(, $healthOut) = $this->runCtl(["health"], false);
+		$health = trim(implode("\n", $healthOut));
+		$object["health"] = $health;
+		$object["healthText"] = [
+			"healthy" => "Healthy",
+			"unhealthy" => "Unhealthy",
+			"starting" => "Starting",
+			"none" => "No health check"
+		][$health] ?? "Unknown";
+
 		// Running image tag
 		list(, $versionOut) = $this->runCtl(["version"], false);
 		$runningVersion = trim(implode("\n", $versionOut));
@@ -882,15 +1146,156 @@ YAML;
 		$object["maskCount"] = count($masks);
 		$object["maskPreview"] = !empty($masks) ? implode("\n", $masks) : "No paths masked";
 
-		// Sources count
+		// Sources count and the derived state of the action buttons. The
+		// Workbench taskDialog does not reload the page, so the buttons are
+		// driven by server-side flags (refresh with the "Refresh status"
+		// button) instead of being clickable in every state.
 		$sources = $this->getAllSources();
 		$object["sourcesCount"] = count($sources);
+
+		$enabled = !empty($object["enable"]);
+		$running = !empty($object["running"]);
+		$configured = ("" !== trim((string)($object["dataRef"] ?? ""))) &&
+			(count($sources) > 0);
+		$object["configured"] = $configured;
+		$object["canStart"] = $configured && $enabled && !$running;
+		$object["canStop"] = $running;
+		$object["canRestart"] = $configured && $enabled && $running;
+		$object["canUpgrade"] = $configured && $enabled;
+		$object["canOpen"] = $running;
+
+		// Link target for the "Open" button: never emit the base path twice.
+		try {
+			$baseURL = $this->normalizeBaseURL((string)($object["baseURL"] ?? ""));
+			$appUrl = $this->validateAppUrl((string)($object["appUrl"] ?? ""));
+		} catch (\Throwable $e) {
+			// Legacy values that no longer validate must not break get().
+			$baseURL = "";
+			$appUrl = trim((string)($object["appUrl"] ?? ""));
+		}
+		$split = $this->splitAppUrl($appUrl, $baseURL);
+		$object["openUrlBase"] = $split["base"];
+		$object["openUrlPath"] = $split["path"];
+
+		// Advisory permission check for the configured PUID/PGID.
+		$object["permissionsReport"] = $this->permissionReport($object);
+		$object["permissionsWarning"] =
+			(false !== strpos($object["permissionsReport"], "NOT readable"));
 
 		return $object;
 	}
 
 	/**
+	 * Human readable check whether the configured PUID/PGID can read the
+	 * data folder and the storage sources.
+	 *
+	 * This is advisory only: POSIX ACLs and root (PUID/PGID 0) also grant
+	 * access, and files created later may have different owners. It exists
+	 * so a permission problem shows up before the container returns HTTP
+	 * 403 in the web interface.
+	 */
+	private function permissionReport(array $settings): string
+	{
+		$uid = (int)($settings["puid"] ?? 0);
+		$gid = (int)($settings["pgid"] ?? 0);
+		$targets = [];
+		$dataRef = trim((string)($settings["dataRef"] ?? ""));
+		if ("" !== $dataRef) {
+			$targets[] = [
+				"label" => "data",
+				"path" => $this->resolveSharedFolderPath($dataRef)
+			];
+		}
+		foreach ($this->getAllSources() as $source) {
+			$targets[] = [
+				"label" => (string)($source["path"] ?? ""),
+				"path" => $this->resolveSharedFolderPath(
+					(string)($source["sharedfolderref"] ?? "")
+				)
+			];
+		}
+		if (empty($targets)) {
+			return "No data folder and no storage source configured yet.";
+		}
+		$lines = [];
+		foreach ($targets as $target) {
+			if ("" === $target["path"]) {
+				$lines[] = sprintf("unknown: %s (shared folder cannot be resolved)", $target["label"]);
+				continue;
+			}
+			if (!@is_dir($target["path"])) {
+				$lines[] = sprintf("unknown: %s (not present on this host)", $target["path"]);
+				continue;
+			}
+			if ($this->canAccess($target["path"], $uid, $gid)) {
+				$lines[] = sprintf("readable: %s", $target["path"]);
+			} else {
+				$lines[] = sprintf(
+					"NOT readable by %d:%d: %s",
+					$uid,
+					$gid,
+					$this->describePathOwner($target["path"])
+				);
+			}
+		}
+		return implode("\n", $lines);
+	}
+
+	/**
+	 * Whether a POSIX user/group can read a directory (ACLs excluded).
+	 */
+	private function canAccess(string $path, int $uid, int $gid): bool
+	{
+		if (0 === $uid) {
+			return true;
+		}
+		$stat = @stat($path);
+		if (false === $stat) {
+			return false;
+		}
+		$mode = ((int)$stat["mode"]) & 0777;
+		if ((int)$stat["uid"] === $uid) {
+			return 0 !== ($mode & 0400);
+		}
+		if ((int)$stat["gid"] === $gid) {
+			return 0 !== ($mode & 0040);
+		}
+		return 0 !== ($mode & 0004);
+	}
+
+	/**
+	 * 'owner:group mode' of a path for the permission report.
+	 */
+	private function describePathOwner(string $path): string
+	{
+		$stat = @stat($path);
+		if (false === $stat) {
+			return $path;
+		}
+		$user = (string)$stat["uid"];
+		$group = (string)$stat["gid"];
+		if (function_exists("posix_getpwuid")) {
+			$info = @posix_getpwuid((int)$stat["uid"]);
+			if (is_array($info) && isset($info["name"])) {
+				$user = $info["name"];
+			}
+		}
+		if (function_exists("posix_getgrgid")) {
+			$info = @posix_getgrgid((int)$stat["gid"]);
+			if (is_array($info) && isset($info["name"])) {
+				$group = $info["name"];
+			}
+		}
+		return sprintf("%s (%s:%s %04o). Grant read access with ACL/permissions or use PUID/PGID 0 (root).",
+			$path, $user, $group, ((int)$stat["mode"]) & 07777);
+	}
+
+	/**
 	 * Asynchronously query latest upstream version from GitHub (Triggered on demand).
+	 *
+	 * A failure (no network, GitHub unreachable, unexpected response) is
+	 * raised as an RPC error, so the web UI shows the real reason instead
+	 * of a success notification with an empty result.
 	 */
 	public function getLatestVersion($params, $context)
 	{
@@ -898,18 +1303,18 @@ YAML;
 		$object = $this->getSettingsObject($context);
 		$channel = $this->channelOf((string)($object["version"] ?? ""));
 
-		list($exitCode, $output) = $this->runCtl(["latest", $channel], false);
-		$tag = trim(implode("\n", $output));
-		if (0 === $exitCode && !empty($tag)) {
-			$this->writeCachedLatestVersion($tag);
-			return [
-				"latestVersion" => $tag,
-				"success" => true
-			];
+		$tag = $this->fetchLatestTag($channel);
+		if ("" === $tag) {
+			throw new \OMV\Exception(sprintf(
+				"The latest upstream release of the '%s' channel could not be determined. " .
+				"Check whether the NAS can reach github.com and try again.",
+				$channel
+			));
 		}
+		$this->writeCachedLatestVersion($tag);
 		return [
-			"latestVersion" => "",
-			"success" => false
+			"latestVersion" => $tag,
+			"success" => true
 		];
 	}
 
@@ -952,9 +1357,43 @@ YAML;
 			}
 		}
 
-		$enabling = !empty($data["enable"]);
-		$dataRef = (string)($data["dataRef"] ?? "");
-		$maskProtected = !empty($data["maskProtected"]);
+		// URLs and the proxy header are validated before they are stored;
+		// an empty base URL really clears the previous sub path.
+		if (array_key_exists("baseURL", $data)) {
+			$data["baseURL"] = $this->normalizeBaseURL((string)$data["baseURL"]);
+		}
+		if (array_key_exists("appUrl", $data)) {
+			$data["appUrl"] = $this->validateAppUrl((string)$data["appUrl"]);
+		}
+		if (array_key_exists("authProxyHeader", $data)) {
+			$header = trim((string)$data["authProxyHeader"]);
+			if ("" === $header) {
+				$header = self::DEFAULT_PROXY_HEADER;
+			}
+			if (1 !== preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/', $header)) {
+				throw new \OMV\Exception(sprintf(
+					"The proxy authentication header '%s' is not a valid HTTP header name.",
+					$header
+				));
+			}
+			$data["authProxyHeader"] = $header;
+		}
+		if (array_key_exists("authMethod", $data) &&
+				!in_array((string)$data["authMethod"], self::AUTH_METHODS, true)) {
+			throw new \OMV\Exception(sprintf(
+				"The authentication method '%s' is not supported.",
+				(string)$data["authMethod"]
+			));
+		}
+
+		// Validate against the effective configuration (stored values plus
+		// the submitted ones), so a partial API update cannot validate an
+		// empty data folder it did not send.
+		$stored = $this->getSettingsObject($context);
+		$effective = array_merge($stored, $data);
+		$enabling = !empty($effective["enable"]);
+		$dataRef = (string)($effective["dataRef"] ?? "");
+		$maskProtected = !empty($effective["maskProtected"]);
 		$sources = $this->getAllSources();
 
 		$this->validateTopology($dataRef, $sources, $maskProtected, $enabling);
@@ -977,28 +1416,23 @@ YAML;
 	 * shared folder ('/srv/<shared folder name>'), i.e. exactly the value
 	 * the 'Container path' field is filled in with in the Workbench form.
 	 * This way the user immediately sees the mount path that will be used
-	 * and can still edit it; the shared folder reference is resolved from
-	 * this value again in setSource().
+	 * and can still edit it; the shared folder is resolved from this value
+	 * again in setSource(). The derived path identifies exactly one shared
+	 * folder: colliding names are disambiguated with a UUID suffix (see
+	 * getSharedFolderIndex()), so the mounted folder is always the one the
+	 * operator selected.
 	 */
 	public function getSharedFolderChoices($params, $context)
 	{
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
 
 		$result = [];
-		foreach ($this->listSharedFolders($context) as $folder) {
-			$uuid = (string)($folder["uuid"] ?? "");
-			if ("" === $uuid) {
-				continue;
-			}
-			$name = trim((string)($folder["name"] ?? ""));
-			$derived = $this->normalizeContainerPath(
-				$this->deriveContainerPath($name, $uuid)
-			);
+		foreach ($this->getSharedFolderIndex($context) as $uuid => $entry) {
 			$result[] = [
-				"value" => $derived,
-				"text" => sprintf("%s (%s)", $name, $derived),
+				"value" => $entry["path"],
+				"text" => sprintf("%s (%s)", $entry["name"], $entry["path"]),
 				"uuid" => $uuid,
-				"name" => $name
+				"name" => $entry["name"]
 			];
 		}
 
@@ -1200,9 +1634,100 @@ YAML;
 		return $this->execBgCtl([$op]);
 	}
 
+	/**
+	 * Configuration modules whose pending changes invalidate the stack.
+	 */
+	const RELATED_DIRTY_MODULES = ["filebrowserquantum", "sharedfolders"];
+
+	/**
+	 * Whether a related module still has unapplied changes.
+	 *
+	 * Starting the container from the settings page must not run ahead of
+	 * a pending Apply: the stack file and the mounts would still reflect
+	 * the previous configuration.
+	 */
+	private function hasPendingChanges($context): bool
+	{
+		try {
+			$info = \OMV\Rpc\Rpc::call("System", "getInformation", [], $context);
+		} catch (\Throwable $e) {
+			return false;
+		}
+		$modules = $info["dirtyModules"] ?? [];
+		if (!is_array($modules)) {
+			return false;
+		}
+		foreach ($modules as $module) {
+			if (in_array((string)$module, self::RELATED_DIRTY_MODULES, true)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Fail-closed preconditions shared by start/restart/upgrade.
+	 *
+	 * A direct RPC call must not bypass the enabled flag, the data folder
+	 * requirement or the "at least one storage source" rule.
+	 */
+	private function assertOperational($context): void
+	{
+		$settings = $this->getSettingsObject($context);
+		if (empty($settings["enable"])) {
+			throw new \OMV\Exception(
+				"The FileBrowser Quantum service is disabled. Enable it, save and apply the configuration before starting the container."
+			);
+		}
+		$this->validateTopology(
+			(string)($settings["dataRef"] ?? ""),
+			$this->getAllSources(),
+			!empty($settings["maskProtected"]),
+			true
+		);
+		if ($this->hasPendingChanges($context)) {
+			throw new \OMV\Exception(
+				"There are pending configuration changes (FileBrowser Quantum or shared folders). " .
+				"Click 'Apply changes' first, then start or upgrade the container."
+			);
+		}
+	}
+
+	/**
+	 * Advance a pinned image tag to the latest upstream release and return
+	 * the new tag ('' when the tag is floating or already current).
+	 */
+	private function advanceImageTag($context): string
+	{
+		$settings = $this->getSettingsObject($context);
+		$current = trim((string)($settings["version"] ?? ""));
+		if (!$this->isPinnedTag($current)) {
+			// Floating tag: 'docker compose pull' already resolves the newest
+			// image of the tag, so nothing has to be rewritten.
+			return "";
+		}
+		$latest = $this->fetchLatestTag($this->channelOf($current));
+		if ("" === $latest) {
+			throw new \OMV\Exception(
+				"The latest upstream release could not be determined, so the pinned image tag cannot be advanced. " .
+				"Check whether the NAS can reach github.com, or change the image tag manually."
+			);
+		}
+		$next = $this->nextTagForUpgrade($current, $latest);
+		if ("" === $next) {
+			return "";
+		}
+		\OMV\Rpc\Rpc::call("Config", "set", [
+			"id" => "conf.service.filebrowserquantum",
+			"data" => ["version" => $next]
+		], $context);
+		return $next;
+	}
+
 	public function start($params, $context)
 	{
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
+		$this->assertOperational($context);
 		return $this->execCtlTask($context, "up");
 	}
 
@@ -1215,12 +1740,25 @@ YAML;
 	public function restart($params, $context)
 	{
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
+		$this->assertOperational($context);
 		return $this->execCtlTask($context, "restart");
 	}
 
+	/**
+	 * Upgrade to the latest upstream release.
+	 *
+	 * The target tag is resolved and written to the configuration database
+	 * first, the Compose stack is re-rendered with it, and only then the
+	 * image is pulled and the container recreated - pulling the fixed tag
+	 * alone never advances anything. Pull failures abort the task instead
+	 * of being swallowed.
+	 */
 	public function upgrade($params, $context)
 	{
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
+		$this->assertOperational($context);
+		$this->advanceImageTag($context);
+		$this->syncComposeStack($context, $this->getSettingsObject($context));
 		return $this->execCtlTask($context, "upgrade");
 	}
 
