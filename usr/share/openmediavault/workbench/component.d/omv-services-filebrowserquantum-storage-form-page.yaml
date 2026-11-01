@@ -23,19 +23,35 @@ data:
         stateId: d874c932-15f0-469b-9832-4217fa3910c8
     fields:
       - type: confObjUuid
-      - type: sharedFolderSelect
-        name: sharedfolderref
-        label: _("Shared folder")
-        hint: _("Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below).")
-        hasEmptyOption: true
-        hasCreateButton: true
+      - type: hidden
+        name: autoPath
         value: ""
+        submitValue: false
+        modifiers:
+          - type: value
+            deps:
+              - sharedfolder
+            typeConfig: "{{ sharedfolder }}"
+      - type: select
+        name: sharedfolder
+        label: _("Shared folder")
+        hint: _("Shared folder exposed to FileBrowser Quantum. The container path below is filled in from it and stays editable.")
+        hasEmptyOption: true
+        value: ""
+        store:
+          proxy:
+            service: FileBrowserQuantum
+            get:
+              method: getSharedFolderChoices
+        sorters:
+          - dir: asc
+            prop: text
         validators:
           required: true
       - type: textInput
         name: path
         label: _("Container path")
-        hint: _("Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving.")
+        hint: _("Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again.")
         placeholder: "/srv/<shared folder name>"
         value: ""
         hasClearButton: true
@@ -43,6 +59,27 @@ data:
           pattern:
             pattern: "^$|^/[^:\\s\"'\\\\]+$"
             errorData: _("Must be an absolute path without a colon or whitespace (e.g. /srv/photos).")
+        modifiers:
+          - type: value
+            constraint:
+              operator: and
+              arg0:
+                operator: notEmpty
+                arg0:
+                  prop: sharedfolder
+              arg1:
+                operator: or
+                arg0:
+                  operator: empty
+                  arg0:
+                    prop: path
+                arg1:
+                  operator: eq
+                  arg0:
+                    prop: path
+                  arg1:
+                    prop: autoPath
+            typeConfig: "{{ sharedfolder }}"
       - type: textInput
         name: name
         label: _("Display name")

@@ -1,3 +1,25 @@
+openmediavault-filebrowser-quantum (8.1.2) stable; urgency=medium
+
+  * Fill in the container path automatically when a shared folder is
+    selected in the storage source form:
+    - The "Shared folder" field is now a plain select fed by the new
+      FileBrowserQuantum.getSharedFolderChoices RPC. Each entry shows the
+      container path that will be derived for the folder
+      (e.g. "volume0 (/srv/volume0)").
+    - Selecting a folder fills the "Container path" field with that value
+      through a Workbench form modifier, so the value is visible before
+      saving and can still be edited. Clearing the field fills it in
+      again; a path that the user already customized is never overwritten.
+    - getSource delivers the derived path as the field value (and as the
+      hidden autoPath baseline), so the edit form preselects the folder
+      and keeps following it while the path was not customized.
+    - setSource resolves the submitted container path back to the shared
+      folder UUID, keeps accepting a plain sharedfolderref (API clients)
+      and now detects the OMV new-object sentinel UUID correctly.
+  * New translatable strings for the updated hints (zh_CN, zh_TW).
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sun, 01 Nov 2026 17:10:00 +0800
+
 openmediavault-filebrowser-quantum (8.1.1) stable; urgency=medium
 
   * Fix automatic container path generation for storage sources:

@@ -20,8 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 WB = ROOT / "usr" / "share" / "openmediavault" / "workbench"
 LOC = ROOT / "usr" / "share" / "openmediavault" / "locale"
 PKG = "openmediavault-filebrowser-quantum"
-VER = "8.1.1"
-DATE = "2026-11-01 02:30+0800"
+VER = "8.1.2"
+DATE = "2026-11-01 17:10+0800"
 
 GET = re.compile(r'_\(\s*(["\'])(.*?)\1\s*\)', re.DOTALL)
 
@@ -224,13 +224,13 @@ T: dict[str, tuple[str, str]] = {
         "请勿选择 Compose 插件共享文件夹本身、系统目录、RustFS 对象存储或 Docker data-root。此类文件夹会被拒绝或自动遮蔽，使 FileBrowser Quantum 无法读取其凭据或自身状态。",
         "請勿選取 Compose 外掛共享資料夾本身、系統目錄、RustFS 物件儲存或 Docker data-root。此類資料夾會被拒絕或自動遮蔽，使 FileBrowser Quantum 無法讀取其憑證或自身狀態。",
     ),
-    "Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below).": (
-        "暴露给 FileBrowser Quantum 的共享文件夹（绑定到下方的容器路径）。",
-        "公開給 FileBrowser Quantum 的共享資料夾（繫結到下方的容器路徑）。",
+    "Shared folder exposed to FileBrowser Quantum. The container path below is filled in from it and stays editable.": (
+        "暴露给 FileBrowser Quantum 的共享文件夹。下方的容器路径会据此自动填充，且仍可手动修改。",
+        "公開給 FileBrowser Quantum 的共享資料夾。下方的容器路徑會據此自動填入，且仍可手動修改。",
     ),
-    "Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving.": (
-        "容器内的绝对路径。留空则在保存时根据所选共享文件夹自动生成 '/srv/<共享文件夹名>'。",
-        "容器內的絕對路徑。留空則在儲存時根據所選共享資料夾自動產生 '/srv/<共享資料夾名>'。",
+    "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again.": (
+        "容器内的绝对路径。选定共享文件夹后会自动填充为 '/srv/<共享文件夹名>'，之后仍可手动修改；清空该字段可重新自动填充。",
+        "容器內的絕對路徑。選定共享資料夾後會自動填入 '/srv/<共享資料夾名>'，之後仍可手動修改；清空該欄位可重新自動填入。",
     ),
     "Must be an absolute path without a colon or whitespace (e.g. /srv/photos).": (
         "必须是不含冒号或空白的绝对路径（例如 /srv/photos）。",

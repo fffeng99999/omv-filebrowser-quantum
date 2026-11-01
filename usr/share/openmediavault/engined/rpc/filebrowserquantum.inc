@@ -110,6 +110,7 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 		$this->registerMethod("getSource");
 		$this->registerMethod("setSource");
 		$this->registerMethod("deleteSource");
+		$this->registerMethod("getSharedFolderChoices");
 		$this->registerMethod("start");
 		$this->registerMethod("stop");
 		$this->registerMethod("restart");
@@ -222,6 +223,17 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	}
 
 	/**
+	 * List all shared folders known to the configuration database.
+	 */
+	private function listSharedFolders($context): array
+	{
+		$folders = \OMV\Rpc\Rpc::call("Config", "get", [
+			"id" => "conf.system.sharedfolder"
+		], $context);
+		return is_array($folders) ? $folders : [];
+	}
+
+	/**
 	 * Name of a shared folder by reference (empty when unknown).
 	 */
 	private function sharedFolderName($context, string $ref): string
@@ -229,15 +241,59 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 		if ("" === $ref) {
 			return "";
 		}
-		$folders = \OMV\Rpc\Rpc::call("Config", "get", [
-			"id" => "conf.system.sharedfolder"
-		], $context);
-		if (!is_array($folders)) {
-			return "";
-		}
-		foreach ($folders as $folder) {
+		foreach ($this->listSharedFolders($context) as $folder) {
 			if (($folder["uuid"] ?? "") === $ref) {
 				return (string)($folder["name"] ?? "");
+			}
+		}
+		return "";
+	}
+
+	/**
+	 * Container path derived for the given shared folder reference
+	 * (empty when the reference cannot be resolved).
+	 */
+	private function deriveContainerPathForRef($context, string $ref): string
+	{
+		if ("" === $ref) {
+			return "";
+		}
+		$name = $this->sharedFolderName($context, $ref);
+		if ("" === $name) {
+			return "";
+		}
+		return $this->normalizeContainerPath(
+			$this->deriveContainerPath($name, $ref)
+		);
+	}
+
+	/**
+	 * Reverse mapping used by the Workbench storage source form: the
+	 * 'Shared folder' select submits the container path derived for the
+	 * chosen shared folder, so the 'Container path' field can be filled
+	 * in from it. Resolve that value back to the shared folder UUID.
+	 *
+	 * The derived path is unique per shared folder name in practice. If
+	 * two names sanitize to the same segment the first match wins, but
+	 * such a pair can never be mounted twice because the container path
+	 * must be unique as well.
+	 */
+	private function sharedFolderRefByContainerPath($context, string $cpath): string
+	{
+		if ("" === $cpath) {
+			return "";
+		}
+		$normalized = $this->normalizeContainerPath($cpath);
+		foreach ($this->listSharedFolders($context) as $folder) {
+			$uuid = (string)($folder["uuid"] ?? "");
+			if ("" === $uuid) {
+				continue;
+			}
+			$derived = $this->normalizeContainerPath(
+				$this->deriveContainerPath((string)($folder["name"] ?? ""), $uuid)
+			);
+			if ($derived === $normalized) {
+				return $uuid;
 			}
 		}
 		return "";
@@ -934,6 +990,42 @@ YAML;
 	}
 
 	/**
+	 * Candidates for the 'Shared folder' select of the storage source
+	 * form.
+	 *
+	 * The submitted value is the container path that is derived for the
+	 * shared folder ('/srv/<shared folder name>'), i.e. exactly the value
+	 * the 'Container path' field is filled in with in the Workbench form.
+	 * This way the user immediately sees the mount path that will be used
+	 * and can still edit it; the shared folder reference is resolved from
+	 * this value again in setSource().
+	 */
+	public function getSharedFolderChoices($params, $context)
+	{
+		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
+
+		$result = [];
+		foreach ($this->listSharedFolders($context) as $folder) {
+			$uuid = (string)($folder["uuid"] ?? "");
+			if ("" === $uuid) {
+				continue;
+			}
+			$name = trim((string)($folder["name"] ?? ""));
+			$derived = $this->normalizeContainerPath(
+				$this->deriveContainerPath($name, $uuid)
+			);
+			$result[] = [
+				"value" => $derived,
+				"text" => sprintf("%s (%s)", $name, $derived),
+				"uuid" => $uuid,
+				"name" => $name
+			];
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Get source mappings for DataTable.
 	 */
 	public function getSources($params, $context)
@@ -974,7 +1066,19 @@ YAML;
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
 		$this->validateMethodParams($params, "rpc.common.objectuuid");
 		$db = \OMV\Config\Database::getInstance();
-		return $db->get("conf.service.filebrowserquantum.source", $params["uuid"])->getAssoc();
+		$entry = $db->get("conf.service.filebrowserquantum.source", $params["uuid"])->getAssoc();
+		// Additional values for the Workbench form: 'sharedfolder' is the
+		// option value of the 'Shared folder' select (the container path
+		// derived for the stored shared folder) and 'autoPath' keeps that
+		// value so the container path follows the shared folder as long as
+		// the user did not customize it.
+		$derived = $this->deriveContainerPathForRef(
+			$context,
+			(string)($entry["sharedfolderref"] ?? "")
+		);
+		$entry["sharedfolder"] = $derived;
+		$entry["autoPath"] = $derived;
+		return $entry;
 	}
 
 	/**
@@ -984,10 +1088,26 @@ YAML;
 	{
 		$this->validateMethodContext($context, ["role" => OMV_ROLE_ADMINISTRATOR]);
 
+		// The Workbench form submits the shared folder as the container path
+		// derived for it ('sharedfolder'), plain API clients keep sending
+		// 'sharedfolderref' directly. Both are accepted, the form value wins.
+		$selection = $this->normalizeContainerPath(
+			(string)($params["sharedfolder"] ?? "")
+		);
+		unset($params["sharedfolder"], $params["autoPath"]);
 		$ref = trim((string)($params["sharedfolderref"] ?? ""));
+		if ("" !== $selection) {
+			$ref = $this->sharedFolderRefByContainerPath($context, $selection);
+			if ("" === $ref) {
+				throw new \OMV\Exception(
+					"The selected shared folder could not be resolved. Reload the page and select it again."
+				);
+			}
+		}
 		if (empty($ref)) {
 			throw new \OMV\Exception("Select a shared folder.");
 		}
+		$params["sharedfolderref"] = $ref;
 
 		$sfName = $this->sharedFolderName($context, $ref);
 		if (empty($sfName)) {
@@ -996,7 +1116,11 @@ YAML;
 
 		$existingSources = $this->getAllSources();
 		$uuid = trim((string)($params["uuid"] ?? ""));
-		$isNew = empty($uuid) || $uuid === "undefined" || !\OMV\Uuid::isUuid4($uuid);
+		// The Workbench form sends the OMV 'new object' sentinel UUID when
+		// a source is created, so compare against it explicitly.
+		$newUuid = (string)\OMV\Environment::get("OMV_CONFIGOBJECT_NEW_UUID");
+		$isNew = empty($uuid) || $uuid === "undefined" ||
+			!\OMV\Uuid::isUuid4($uuid) || ("" !== $newUuid && $uuid === $newUuid);
 		if ($isNew) {
 			unset($params["uuid"]);
 		}

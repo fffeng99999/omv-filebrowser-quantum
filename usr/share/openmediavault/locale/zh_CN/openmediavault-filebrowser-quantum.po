@@ -3,10 +3,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.1\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 02:30+0800\n"
-"PO-Revision-Date: 2026-11-01 02:30+0800\n"
+"POT-Creation-Date: 2026-11-01 17:10+0800\n"
+"PO-Revision-Date: 2026-11-01 17:10+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: Chinese (Simplified) <openmediavault-plugins@googlegroups.com>\n"
 "Language: zh_CN\n"
@@ -254,11 +254,11 @@ msgstr "存储源将共享文件夹挂载到 FileBrowser Quantum 容器中，以
 msgid "Do not select the Compose plugin shared folder itself, a system directory, the RustFS object store or the Docker data root. Such folders are rejected or masked automatically so FileBrowser Quantum cannot read their credentials or its own state."
 msgstr "请勿选择 Compose 插件共享文件夹本身、系统目录、RustFS 对象存储或 Docker data-root。此类文件夹会被拒绝或自动遮蔽，使 FileBrowser Quantum 无法读取其凭据或自身状态。"
 
-msgid "Shared folder exposed to FileBrowser Quantum (bound into the container at the container path below)."
-msgstr "暴露给 FileBrowser Quantum 的共享文件夹（绑定到下方的容器路径）。"
+msgid "Shared folder exposed to FileBrowser Quantum. The container path below is filled in from it and stays editable."
+msgstr "暴露给 FileBrowser Quantum 的共享文件夹。下方的容器路径会据此自动填充，且仍可手动修改。"
 
-msgid "Absolute path inside the container. Leave it empty to generate '/srv/<shared folder name>' from the selected shared folder automatically when saving."
-msgstr "容器内的绝对路径。留空则在保存时根据所选共享文件夹自动生成 '/srv/<共享文件夹名>'。"
+msgid "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again."
+msgstr "容器内的绝对路径。选定共享文件夹后会自动填充为 '/srv/<共享文件夹名>'，之后仍可手动修改；清空该字段可重新自动填充。"
 
 msgid "Must be an absolute path without a colon or whitespace (e.g. /srv/photos)."
 msgstr "必须是不含冒号或空白的绝对路径（例如 /srv/photos）。"

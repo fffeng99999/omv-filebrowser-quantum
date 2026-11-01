@@ -16,7 +16,7 @@
 # Workbench assets.
 
 OMV_PACKAGE    := openmediavault-filebrowser-quantum
-OMV_VERSION    := 8.1.1
+OMV_VERSION    := 8.1.2
 OMV_PROJECT_DIR := $(CURDIR)
 OMV_WORKBENCH_DIR := $(OMV_PROJECT_DIR)/usr/share/openmediavault/workbench
 OMV_LOCALE_DIR   := $(OMV_PROJECT_DIR)/usr/share/openmediavault/locale

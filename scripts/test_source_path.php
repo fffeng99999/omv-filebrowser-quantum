@@ -2,7 +2,7 @@
 
 /**
  * Unit tests for the container path helpers of the FileBrowser Quantum
- * RPC service (openmediavault-filebrowser-quantum 8.1.1).
+ * RPC service (openmediavault-filebrowser-quantum 8.1.2).
  *
  * The RPC class normally runs inside omv-engined, so this test provides
  * minimal stubs for the two framework classes it extends/throws and then
@@ -15,6 +15,17 @@
 namespace OMV\Rpc {
 	class ServiceAbstract
 	{
+	}
+
+	/** Stand-in for the framework RPC dispatcher used by the helpers. */
+	class Rpc
+	{
+		public static $folders = [];
+
+		public static function call($service = null, $method = null, $params = [], $context = null)
+		{
+			return self::$folders;
+		}
 	}
 }
 
@@ -36,6 +47,10 @@ namespace {
 	$normalize->setAccessible(true);
 	$validate = $ref->getMethod("validateContainerPath");
 	$validate->setAccessible(true);
+	$deriveForRef = $ref->getMethod("deriveContainerPathForRef");
+	$deriveForRef->setAccessible(true);
+	$refByPath = $ref->getMethod("sharedFolderRefByContainerPath");
+	$refByPath->setAccessible(true);
 
 	$failures = 0;
 	$checks = 0;
@@ -73,6 +88,18 @@ namespace {
 		} catch (\OMV\Exception $e) {
 			return false;
 		}
+	}
+
+	function deriveForRef(string $ref): string
+	{
+		global $deriveForRef, $service;
+		return $deriveForRef->invoke($service, null, $ref);
+	}
+
+	function refByPath(string $path): string
+	{
+		global $refByPath, $service;
+		return $refByPath->invoke($service, null, $path);
 	}
 
 	// ---------------------------------------------------------- derivation
@@ -117,6 +144,26 @@ namespace {
 	check("reserved prefix is rejected", !pathIsValid("/proc/1"));
 	check("data directory prefix is rejected", !pathIsValid("/home/filebrowser/data/x"));
 	check("oversized path is rejected", !pathIsValid("/srv/" . str_repeat("a", 201)));
+
+	// --------------------------------------------- reverse mapping (form)
+	$UUID_A = "857c45ee-5fcb-4d2b-8074-de1d66f70a3b";
+	$UUID_B = "0d5f3f52-5c39-4c3c-9a49-6a1b8f2c9f01";
+	\OMV\Rpc\Rpc::$folders = [
+		["uuid" => $UUID_A, "name" => "volume0"],
+		["uuid" => $UUID_B, "name" => "测试 照片"]
+	];
+
+	check("derived path for a shared folder reference", deriveForRef($UUID_A) === "/srv/volume0", (string)deriveForRef($UUID_A));
+	check("derived path for a Unicode name", deriveForRef($UUID_B) === "/srv/测试_照片", (string)deriveForRef($UUID_B));
+	check("derived path for an unknown reference is empty", deriveForRef("1c1f5f9e-0000-4000-8000-000000000000") === "");
+	check("derived path for an empty reference is empty", deriveForRef("") === "");
+	check("reverse mapping resolves the UUID", refByPath("/srv/volume0") === $UUID_A, (string)refByPath("/srv/volume0"));
+	check("reverse mapping accepts the sanitized Unicode path", refByPath("/srv/测试_照片") === $UUID_B, (string)refByPath("/srv/测试_照片"));
+	check("reverse mapping normalizes the submitted path", refByPath("/srv/volume0//") === $UUID_A, (string)refByPath("/srv/volume0//"));
+	check("reverse mapping rejects the raw (unsanitized) name", refByPath("/srv/测试 照片") === "", (string)refByPath("/srv/测试 照片"));
+	check("reverse mapping of an unknown path is empty", refByPath("/srv/nope") === "");
+	check("reverse mapping of an empty path is empty", refByPath("") === "");
+	\OMV\Rpc\Rpc::$folders = [];
 
 	echo PHP_EOL . $checks . " checks, " . $failures . " failure(s)" . PHP_EOL;
 	exit($failures === 0 ? 0 : 1);
