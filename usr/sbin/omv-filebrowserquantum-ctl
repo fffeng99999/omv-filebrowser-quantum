@@ -260,8 +260,6 @@ import sys, os, json, subprocess, posixpath
 action = sys.argv[1] if len(sys.argv) > 1 else "maskcheck"
 yml_path = sys.argv[2] if len(sys.argv) > 2 else ""
 
-RESTRICTED_PREFIX = "/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74"
-
 def get_conf(cid):
     try:
         res = subprocess.run(["omv-confdbadm", "read", cid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
@@ -357,18 +355,10 @@ except Exception:
 if not docker_root_host:
     docker_root_host = "/var/lib/docker"
 
-# Red Line #9 Verification: Never touch restricted volume
-if data_host and data_host.startswith(RESTRICTED_PREFIX):
-    print(f"FATAL: data shared folder points to restricted volume {RESTRICTED_PREFIX}", file=sys.stderr)
-    sys.exit(1)
-
 storage_items = []
 for s in conf_sources:
     ref = s.get("sharedfolderref", "")
     h = resolve_sf_path(ref, conf_sf, conf_mnt)
-    if h and h.startswith(RESTRICTED_PREFIX):
-        print(f"FATAL: storage source shared folder points to restricted volume {RESTRICTED_PREFIX}", file=sys.stderr)
-        sys.exit(1)
     cp = s.get("path", "")
     ro = bool(int(s.get("readonly", 0) if isinstance(s.get("readonly"), (int, str)) and str(s.get("readonly")).isdigit() else (1 if s.get("readonly", False) else 0)))
     name = s.get("name", "") or cp

@@ -1,3 +1,15 @@
+openmediavault-filebrowser-quantum (8.1.4) stable; urgency=medium
+
+  * Remove the leftover restricted volume check in the ctl:
+    - 8.1.3 dropped the check from the RPC, but omv-filebrowserquantum-ctl
+      kept its own copy, so applying the configuration still failed with
+      "FATAL: storage source shared folder points to restricted volume"
+      while the Salt state ran <ctl> up. The constant and both checks are
+      gone, matching the rules of 8.1.3 (red line #9 only restricts the
+      AI agent; the masking logic is untouched).
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sun, 01 Nov 2026 17:55:00 +0800
+
 openmediavault-filebrowser-quantum (8.1.3) stable; urgency=medium
 
   * Let the container path follow the selected shared folder again:

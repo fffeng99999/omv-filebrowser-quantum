@@ -20,8 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 WB = ROOT / "usr" / "share" / "openmediavault" / "workbench"
 LOC = ROOT / "usr" / "share" / "openmediavault" / "locale"
 PKG = "openmediavault-filebrowser-quantum"
-VER = "8.1.3"
-DATE = "2026-11-01 17:40+0800"
+VER = "8.1.4"
+DATE = "2026-11-01 17:55+0800"
 
 GET = re.compile(r'_\(\s*(["\'])(.*?)\1\s*\)', re.DOTALL)
 
