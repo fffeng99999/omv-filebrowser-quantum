@@ -23,15 +23,6 @@ data:
         stateId: d874c932-15f0-469b-9832-4217fa3910c8
     fields:
       - type: confObjUuid
-      - type: hidden
-        name: autoPath
-        value: ""
-        submitValue: false
-        modifiers:
-          - type: value
-            deps:
-              - sharedfolder
-            typeConfig: "{{ sharedfolder }}"
       - type: select
         name: sharedfolder
         label: _("Shared folder")
@@ -51,7 +42,7 @@ data:
       - type: textInput
         name: path
         label: _("Container path")
-        hint: _("Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again.")
+        hint: _("Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; leave it empty to have it generated again when saving.")
         placeholder: "/srv/<shared folder name>"
         value: ""
         hasClearButton: true
@@ -79,6 +70,15 @@ data:
                     prop: path
                   arg1:
                     prop: autoPath
+            typeConfig: "{{ sharedfolder }}"
+      - type: hidden
+        name: autoPath
+        value: ""
+        submitValue: false
+        modifiers:
+          - type: value
+            deps:
+              - sharedfolder
             typeConfig: "{{ sharedfolder }}"
       - type: textInput
         name: name

@@ -55,12 +55,6 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	const IMAGE_REPO = "ghcr.io/gtsteffaniak/filebrowser";
 
 	/**
-	 * Production NAS restricted volume prefix (Red line #9).
-	 * Any access or inspection is strictly forbidden.
-	 */
-	const RESTRICTED_VOLUME_PREFIX = "/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74";
-
-	/**
 	 * Local cache file for latest upstream release tag (Zero network I/O in get()).
 	 */
 	const LATEST_CACHE_FILE = "/var/lib/openmediavault/filebrowserquantum-latest.json";
@@ -300,18 +294,6 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 	}
 
 	/**
-	 * Red line #9: Assert host path does not touch the restricted production volume.
-	 */
-	private function assertNotRestrictedVolume(string $hostPath): void
-	{
-		if (str_starts_with($hostPath, self::RESTRICTED_VOLUME_PREFIX)) {
-			throw new \OMV\Exception(
-				"The selected shared folder points to a restricted volume and cannot be configured in FileBrowser Quantum."
-			);
-		}
-	}
-
-	/**
 	 * Check if $child is a strict descendant of $parent.
 	 */
 	private function isStrictDescendant(string $child, string $parent): bool
@@ -509,7 +491,6 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 			if (empty($dataHost)) {
 				throw new \OMV\Exception("The data shared folder could not be resolved.");
 			}
-			$this->assertNotRestrictedVolume($dataHost);
 			if ($dataHost === "/") {
 				throw new \OMV\Exception("The root filesystem cannot be used as the data shared folder.");
 			}
@@ -529,7 +510,6 @@ class OMVRpcServiceFileBrowserQuantum extends \OMV\Rpc\ServiceAbstract
 			if (empty($host)) {
 				throw new \OMV\Exception("A selected storage source shared folder could not be resolved.");
 			}
-			$this->assertNotRestrictedVolume($host);
 			if ($host === "/") {
 				throw new \OMV\Exception("The root filesystem cannot be used as a storage source.");
 			}

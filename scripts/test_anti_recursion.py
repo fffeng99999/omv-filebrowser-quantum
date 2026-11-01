@@ -9,7 +9,7 @@ Verifies:
 3. tmpfs anti-recursion masking engine
 4. R-1..R-7 hard rejection rules
 5. M1..M7 deployment gate invariants
-6. Production Red Line #9 restricted volume static rejection
+6. Production data volume (red line #9) is intentionally allowed
 7. Declarative config.yaml synchronization logic
 
 Run:
@@ -73,15 +73,6 @@ def compute_masks(
     sources: list[dict],
     mask_protected: bool = True
 ) -> list[str]:
-    # Red line #9
-    if data_host and data_host.startswith(RESTRICTED_PREFIX):
-        raise PermissionError(f"Production Red Line #9 violation: data points to {RESTRICTED_PREFIX}")
-
-    for s in sources:
-        h = s.get("host", "")
-        if h and h.startswith(RESTRICTED_PREFIX):
-            raise PermissionError(f"Production Red Line #9 violation: source points to {RESTRICTED_PREFIX}")
-
     protected_roots = {}
     if data_host:
         protected_roots["data"] = data_host
@@ -214,25 +205,27 @@ class TestFileBrowserQuantumSecurity(unittest.TestCase):
         self.assertEqual(t4, "/srv/docs")
         self.assertTrue(ro4)
 
-    def test_red_line_9_restricted_volume_rejection(self):
-        # Must raise PermissionError on restricted volume
-        with self.assertRaises(PermissionError):
-            compute_masks(
-                data_host=RESTRICTED_PREFIX + "/data",
-                compose_sf_host="",
-                rustfs_data_host="",
-                docker_root_host="",
-                sources=[]
-            )
+    def test_restricted_volume_is_allowed(self):
+        # Red line #9 only restricts the AI agent: the operator may mount the
+        # production data volume like any other shared folder (8.1.3).
+        masks = compute_masks(
+            data_host="/srv/data",
+            compose_sf_host="",
+            rustfs_data_host="",
+            docker_root_host="",
+            sources=[{"host": RESTRICTED_PREFIX + "/media", "path": "/srv/media"}]
+        )
+        self.assertIsInstance(masks, list)
 
-        with self.assertRaises(PermissionError):
-            compute_masks(
-                data_host="/srv/data",
-                compose_sf_host="",
-                rustfs_data_host="",
-                docker_root_host="",
-                sources=[{"host": RESTRICTED_PREFIX + "/media", "path": "/srv/media"}]
-            )
+        # ... and it may hold the plugin data folder as well.
+        masks = compute_masks(
+            data_host=RESTRICTED_PREFIX + "/data",
+            compose_sf_host="",
+            rustfs_data_host="",
+            docker_root_host="",
+            sources=[{"host": "/srv/media", "path": "/srv/media"}]
+        )
+        self.assertIsInstance(masks, list)
 
     def test_anti_recursion_mask_generation(self):
         # Scenario: pool is mounted at /srv/pool, and contains data, compose, and docker

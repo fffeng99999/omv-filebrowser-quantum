@@ -1,3 +1,24 @@
+openmediavault-filebrowser-quantum (8.1.3) stable; urgency=medium
+
+  * Let the container path follow the selected shared folder again:
+    - The hidden autoPath baseline was declared before the container path
+      field, so it was updated before the modifier that compares against
+      it ran. Switching the shared folder therefore never re-derived the
+      path once a folder had been picked. The field order is swapped so
+      the comparison sees the previous baseline and an untouched path
+      follows the new folder; customized paths are still preserved.
+    - The container path hint no longer claims that clearing the field
+      fills it in immediately (an empty path is generated when saving).
+  * Remove the hard rejection of the production restricted volume:
+    - Red line #9 only restricts the AI agent from reading that volume,
+      it does not forbid the operator from mounting it. Blocking it in
+      assertNotRestrictedVolume() made 'volume1' unselectable as a
+      storage source (500 "points to a restricted volume"). Operators may
+      now expose it like any other shared folder; the R-1..R-7 recursion
+      and credential masking rules are unchanged.
+
+ -- ${GITHUB_USER} <${GITHUB_USER}@users.noreply.github.com>  Sun, 01 Nov 2026 17:40:00 +0800
+
 openmediavault-filebrowser-quantum (8.1.2) stable; urgency=medium
 
   * Fill in the container path automatically when a shared folder is

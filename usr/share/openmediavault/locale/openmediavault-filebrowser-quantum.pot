@@ -1,10 +1,10 @@
 # Translation template for openmediavault-filebrowser-quantum.
 msgid ""
 msgstr ""
-"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.2\n"
+"Project-Id-Version: openmediavault-filebrowser-quantum 8.1.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 17:10+0800\n"
-"PO-Revision-Date: 2026-11-01 17:10+0800\n"
+"POT-Creation-Date: 2026-11-01 17:40+0800\n"
+"PO-Revision-Date: 2026-11-01 17:40+0800\n"
 "Last-Translator: ${GITHUB_USER}\n"
 "Language-Team: \n"
 "Language: \n"
@@ -255,7 +255,7 @@ msgstr ""
 msgid "Shared folder exposed to FileBrowser Quantum. The container path below is filled in from it and stays editable."
 msgstr ""
 
-msgid "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again."
+msgid "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; leave it empty to have it generated again when saving."
 msgstr ""
 
 msgid "Must be an absolute path without a colon or whitespace (e.g. /srv/photos)."

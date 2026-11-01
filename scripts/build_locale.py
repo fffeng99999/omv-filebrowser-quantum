@@ -20,8 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 WB = ROOT / "usr" / "share" / "openmediavault" / "workbench"
 LOC = ROOT / "usr" / "share" / "openmediavault" / "locale"
 PKG = "openmediavault-filebrowser-quantum"
-VER = "8.1.2"
-DATE = "2026-11-01 17:10+0800"
+VER = "8.1.3"
+DATE = "2026-11-01 17:40+0800"
 
 GET = re.compile(r'_\(\s*(["\'])(.*?)\1\s*\)', re.DOTALL)
 
@@ -228,9 +228,9 @@ T: dict[str, tuple[str, str]] = {
         "暴露给 FileBrowser Quantum 的共享文件夹。下方的容器路径会据此自动填充，且仍可手动修改。",
         "公開給 FileBrowser Quantum 的共享資料夾。下方的容器路徑會據此自動填入，且仍可手動修改。",
     ),
-    "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; clear the field to fill it in again.": (
-        "容器内的绝对路径。选定共享文件夹后会自动填充为 '/srv/<共享文件夹名>'，之后仍可手动修改；清空该字段可重新自动填充。",
-        "容器內的絕對路徑。選定共享資料夾後會自動填入 '/srv/<共享資料夾名>'，之後仍可手動修改；清空該欄位可重新自動填入。",
+    "Absolute path inside the container. It is filled in from the selected shared folder as '/srv/<shared folder name>' and can still be changed; leave it empty to have it generated again when saving.": (
+        "容器内的绝对路径。选定共享文件夹后会自动填充为 '/srv/<共享文件夹名>'，之后仍可手动修改；留空则在保存时重新自动生成。",
+        "容器內的絕對路徑。選定共享資料夾後會自動填入 '/srv/<共享資料夾名>'，之後仍可手動修改；留空則在儲存時重新自動產生。",
     ),
     "Must be an absolute path without a colon or whitespace (e.g. /srv/photos).": (
         "必须是不含冒号或空白的绝对路径（例如 /srv/photos）。",

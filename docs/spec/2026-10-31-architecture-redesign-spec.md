@@ -403,22 +403,7 @@ FileBrowser Quantum 具备强大的后台索引引擎（Crawler + Indexer），�
 
 - **红线依据**：`AGENTS.md` / `project_rules_ops.md` 生产红线 #9
 - **受保护对象**：生产 NAS 上 `/dev/md127`（LVM2 逻辑卷 UUID `6dab12c5-4b76-461a-9c3a-7f610aca2f74`，对应挂载路径前缀 `/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74`）。
-- **硬拦截实现**：
-  在 PHP RPC 中定义只读常量：
-  ```php
-  const RESTRICTED_VOLUME_PREFIX = "/srv/dev-disk-by-uuid-6dab12c5-4b76-461a-9c3a-7f610aca2f74";
-  ```
-  在 `set()`、`setSource()` 解析任何共享文件夹宿主路径后，一律调用：
-  ```php
-  private function assertNotRestrictedVolume(string $hostPath): void
-  {
-      if (str_starts_with($hostPath, self::RESTRICTED_VOLUME_PREFIX)) {
-          throw new \OMV\Exception(
-              "The selected shared folder points to a restricted volume and cannot be configured in FileBrowser Quantum."
-          );
-      }
-  }
-  ```
+- **硬拦截 —— 已移除（8.1.3，2026-11-01）**：红线 #9 的「禁读卷」**只约束 AI agent**，不代表该卷未被用户使用；用户自有服务（Immich 照片库 `immich-photos-r6`、FileBrowser `/volume1`）正常挂载该卷是操作者的选择（见 `project_memory.md` 2026-10-07 裁定）。此前把它实现成 `assertNotRestrictedVolume()` 硬拒绝，导致 `volume1` 无法作为存储源（500「points to a restricted volume」），现已删除 `RESTRICTED_VOLUME_PREFIX` 常量与该方法；R-1~R-7 的防递归与凭据遮蔽逻辑不受影响。
 
 ### 2.2 存储拓扑防递归冲突校验规则体系（R-1 至 R-7 硬拒绝闸门）
 
@@ -922,7 +907,7 @@ data:
   - `conf.service.filebrowserquantum.json` 与 `conf.service.filebrowserquantum.source.json` 通过 JSON 语法校验。
   - 8.0.1 遗留配置在安装 8.1.0 后，原有的 `sourceRef` 自动且无损地转换为子存储源第一条记录。
 - [ ] **DOD-2 安全与防递归**：
-  - 选择生产禁读卷（UUID `6dab12c5-4b76-461a-9c3a-7f610aca2f74`）时，RPC 抛出明确异常拦截。
+  - 生产数据卷（UUID `6dab12c5-4b76-461a-9c3a-7f610aca2f74`）**允许**作为存储源（8.1.3 起；红线 #9 仅约束 agent，插件不再拦截）。
   - 设置 `dataRef == sourceRef` 或嵌套路径时，系统精准拒绝并提示。
   - 嵌套 Compose 目录时，Compose 栈中能够正确渲染注入只读 tmpfs 遮蔽项。
 - [ ] **DOD-3 RPC 性能**：
